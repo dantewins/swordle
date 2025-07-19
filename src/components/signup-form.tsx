@@ -10,19 +10,20 @@ import * as z from "zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useUserAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
+import { Loader2 } from "lucide-react";
 
 export function SignupForm() {
   const signupSchema = z.object({
     email: z.email("Invalid email address"),
-    username: z.string().min(3, "Username must be at least 3 characters"),
-    password: z.string().min(6, "Password must be at least 6 characters"),
+    display_name: z.string().min(3, "Display name must be at least 3 characters"),
+    password: z.string().min(8, "Password must be at least 8 characters"),
   });
 
   const form = useForm<z.infer<typeof signupSchema>>({
     resolver: zodResolver(signupSchema),
     defaultValues: {
       email: "",
-      username: "",
+      display_name: "",
       password: "",
     },
   });
@@ -34,13 +35,12 @@ export function SignupForm() {
   const onSubmit = async (data: z.infer<typeof signupSchema>) => {
     setIsLoading(true);
     try {
-      const { success, error } = await signUpNewUser(data.email, data.username, data.password);
+      const { success, error } = await signUpNewUser(data.email, data.display_name, data.password);
 
       if (!success) {
         throw error || new Error("Signup failed");
       }
 
-      console.log("Signup successful");
       router.push("/auth/login");
     } catch (err: any) {
       const errorMessage = err.message || "Signup failed. Please try again.";
@@ -83,15 +83,15 @@ export function SignupForm() {
           />
           <FormField
             control={form.control}
-            name="username"
+            name="display_name"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Username</FormLabel>
+                <FormLabel>Display name</FormLabel>
                 <FormControl>
                   <Input
-                    id="username"
+                    id="display_name"
                     type="text"
-                    placeholder="abc123"
+                    placeholder="Your display name"
                     {...field}
                   />
                 </FormControl>
@@ -106,7 +106,7 @@ export function SignupForm() {
               <FormItem>
                 <FormLabel>Password</FormLabel>
                 <FormControl>
-                  <Input id="password" type="password" {...field} />
+                  <Input id="password" type="password" {...field} autoComplete="password" />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -118,7 +118,7 @@ export function SignupForm() {
             </p>
           )}
           <Button type="submit" className="w-full" disabled={isLoading}>
-            {isLoading ? "Signing up..." : "Sign up"}
+            {isLoading ? <>Sign up <Loader2 className="h-4 w-4 animate-spin"/></> : "Sign up"}
           </Button>
           <div className="after:border-border relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t">
             <span className="bg-background text-muted-foreground relative z-10 px-2">

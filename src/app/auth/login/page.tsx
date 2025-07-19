@@ -27,13 +27,7 @@ export default function LoginPage() {
                     </div>
                 </div>
             </div>
-            <div className="bg-muted relative hidden lg:block">
-                <img
-                    src="https://picsum.photos/1920/2060"
-                    alt="Image"
-                    className="absolute inset-0 w-full h-full object-cover dark:brightness-[0.2] dark:grayscale"
-                />
-            </div>
+            <div className="bg-muted relative hidden lg:block" />
         </div>
     )
 }

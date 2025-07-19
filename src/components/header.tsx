@@ -1,11 +1,15 @@
 "use client";
 
 import { Button } from '@/components/ui/button';
-// import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useUserAuth } from '@/context/AuthContext';
+import { NavUser } from '@/components/nav-user'
+import { MobileMenu } from '@/components/mobile-menu';
 
 export function Header() {
+    const { user } = useUserAuth();
+
     const scrollToSection = (sectionId: string) => {
         const element = document.getElementById(sectionId);
         if (element) {
@@ -41,16 +45,17 @@ export function Header() {
                         <Button variant="ghost" size="sm" onClick={() => scrollToSection('questions')}>
                             Questions
                         </Button>
-                        <Link href="/auth/login">
-                            <Button size="sm">
-                                Login
-                            </Button>
-                        </Link>
-                        {/* <Avatar className='ml-2'>
-                            <AvatarImage src="https://github.com/shadcn.png" alt="@shadcn" />
-                                <AvatarFallback>CN</AvatarFallback>
-                            </Avatar> */}
+                        {user ? (
+                            <NavUser profile={user} />
+                        ) : (
+                            <Link href="/auth/login">
+                                <Button size="sm">
+                                    Login
+                                </Button>
+                            </Link>
+                        )}
                     </nav>
+                    <MobileMenu />
                 </div>
             </div>
         </header>

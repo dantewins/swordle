@@ -10,17 +10,18 @@ import * as z from "zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useUserAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
+import { Loader2 } from "lucide-react";
 
 export function LoginForm() {
   const loginSchema = z.object({
-    username: z.string().min(3, "Username must be at least 3 characters"),
-    password: z.string().min(6, "Password must be at least 6 characters"),
+    email: z.string().email("Invalid email address"),
+    password: z.string().nonempty("Password is required"),
   });
 
   const form = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      username: "",
+      email: "",
       password: "",
     },
   });
@@ -32,7 +33,7 @@ export function LoginForm() {
   const onSubmit = async (data: z.infer<typeof loginSchema>) => {
     setIsLoading(true);
     try {
-      const { success, error } = await signInUser(data.username, data.password);
+      const { success, error } = await signInUser(data.email, data.password);
 
       if (!success) {
         throw new Error(error || "Login failed");
@@ -58,21 +59,20 @@ export function LoginForm() {
         <div className="flex flex-col items-center gap-4 text-center">
           <h1 className="text-2xl font-bold">Login to your account</h1>
           <p className="text-muted-foreground text-sm">
-            Enter your username below to login to your account
+            Enter your email below to login to your account
           </p>
         </div>
         <div className="grid gap-6">
           <FormField
             control={form.control}
-            name="username"
+            name="email"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Username or email</FormLabel>
+                <FormLabel>Email</FormLabel>
                 <FormControl>
                   <Input
-                    id="username"
-                    type="text"
-                    placeholder="abc123"
+                    id="email"
+                    type="email"
                     {...field}
                   />
                 </FormControl>
@@ -107,7 +107,7 @@ export function LoginForm() {
             </p>
           )}
           <Button type="submit" className="w-full" disabled={isLoading}>
-            {isLoading ? "Logging in..." : "Login"}
+            {isLoading ? <>Login <Loader2 className="h-4 w-4 animate-spin"/></> : "Login"}
           </Button>
           <div className="after:border-border relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t">
             <span className="bg-background text-muted-foreground relative z-10 px-2">
