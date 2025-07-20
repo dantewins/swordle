@@ -4,7 +4,7 @@ import { Delete } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useState, useEffect } from 'react'
 
-export default function PlayPage() {
+export default function GamePage() {
     const wordLength = 5 // Change this for different word lengths
     const maxGuesses = 6 // Change this for different number of guesses
     const words = [
@@ -97,7 +97,7 @@ export default function PlayPage() {
             setCurrent('')
         } else if (current.length < wordLength && /^[A-Z]$/.test(key)) {
             setCurrent(prev => prev + key)
-        }
+        }       
     }
 
     const getButtonClass = (key: string): string => {
@@ -137,7 +137,7 @@ export default function PlayPage() {
     const row3 = ['ENTER', 'Z', 'X', 'C', 'V', 'B', 'N', 'M', 'BACKSPACE']
 
     return (
-        <div className="flex flex-col items-center justify-center min-h-screen bg-white gap-4 sm:gap-6 p-4">
+        <div className="flex min-h-[91vh] flex-col items-center justify-center bg-white gap-4 sm:gap-6 p-4">
             <div
                 className="w-full max-w-[90vw] sm:w-96 grid gap-0.5 sm:gap-1"
                 style={{

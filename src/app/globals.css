@@ -123,6 +123,8 @@
 @theme {
   --animate-pop: pop 0.1s ease-in-out;
 
+  --animate-ripples: test 0.5s ease-in-out forwards;
+
   @keyframes pop {
     0% {
       transform: scale(1);
@@ -136,4 +138,44 @@
       transform: scale(1);
     }
   }
+
+  @keyframes test {
+    0% {
+      opacity: 0;
+    }
+
+    100% {
+      opacity: 1;
+    }
+  }
+
+  @keyframes ripples {
+    0% {
+      background-size: 0% 0%, 0% 0%, 0% 0%, 0% 0%, 0% 0%;
+    }
+
+    20% {
+      background-size: 60% 60%, 0% 0%, 0% 0%, 0% 0%, 0% 0%;
+    }
+
+    40% {
+      background-size: 60% 60%, 120% 120%, 0% 0%, 0% 0%, 0% 0%;
+    }
+
+    60% {
+      background-size: 60% 60%, 120% 120%, 180% 180%, 0% 0%, 0% 0%;
+    }
+
+    80% {
+      background-size: 60% 60%, 120% 120%, 180% 180%, 240% 240%, 0% 0%;
+    }
+
+    100% {
+      background-size: 60% 60%, 120% 120%, 180% 180%, 240% 240%, 300% 300%;
+    }
+  }
+}
+
+*::-webkit-scrollbar {
+  display: none;
 }

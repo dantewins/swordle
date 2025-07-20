@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react";
 import { Button } from '@/components/ui/button';
 import { ArrowRight } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -7,7 +8,8 @@ import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import Image from 'next/image';
 import Link from 'next/link';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
-import Division from '@/components/division';
+import Division from '@/components/landing/division';
+import GameModes from "@/components/landing/game-modes";
 
 const features = [
   {
@@ -80,6 +82,8 @@ const squares: SquareKey[] = [
 ];
 
 export default function LandingPage() {
+  const [showModes, setShowModes] = useState(false);
+
   return (
     <>
       {/* Hero section */}
@@ -101,10 +105,9 @@ export default function LandingPage() {
                 <Badge
                   variant="outline"
                   className="border-black rounded-full text-sm px-3 py-1 hover:text-white hover:bg-black cursor-pointer"
+                  onClick={() => setShowModes(true)}
                 >
-                  <Link href='/play'>
-                    Play
-                  </Link>
+                  Play
                 </Badge>
                 <Badge
                   variant="outline"
@@ -313,6 +316,8 @@ export default function LandingPage() {
           </footer>
         </div>
       </div>
+
+      {showModes && <GameModes onClose={() => setShowModes(false)} />}
     </>
   );
 }

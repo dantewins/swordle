@@ -52,7 +52,7 @@ export async function updateSession(request: NextRequest) {
 
     // Optional: Redirect authenticated users away from auth routes (e.g., to home)
     const authPaths = ['/auth/login', '/auth/signup'];
-    console.log(authPaths)
+
     if (
         user &&
         authPaths.some(path => request.nextUrl.pathname.startsWith(path))

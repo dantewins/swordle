@@ -8,7 +8,7 @@ import { Menu, X } from "lucide-react"
 import { Button } from "@/components/ui/button";
 import type { Variants } from "framer-motion";
 
-export function MobileMenu() {
+export function MobileMenu({ scroll } : { scroll: (sectionId: string) => void }) {
     const [open, setOpen] = useState(false);
     const [portalNode, setPortalNode] = useState<HTMLElement | null>(null);
 
@@ -78,7 +78,12 @@ export function MobileMenu() {
                                     exit={{ opacity: 0, y: 20 }}
                                     transition={{ delay: index * 0.1 }}
                                 >
-                                    <Button variant="ghost" className="w-full justify-start text-xl px-4" size="lg">
+                                    <Button variant="ghost" className="w-full justify-start text-xl px-4" size="lg" onClick={() => {
+                                        setOpen(false)
+                                        setTimeout(() => {
+                                            scroll(item.toLowerCase())
+                                        }, 400)
+                                    }}>
                                         {item}
                                     </Button>
                                 </motion.p>

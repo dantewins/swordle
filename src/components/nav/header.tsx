@@ -4,8 +4,8 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useUserAuth } from '@/context/AuthContext';
-import { NavUser } from '@/components/nav-user'
-import { MobileMenu } from '@/components/mobile-menu';
+import { NavUser } from '@/components/nav/nav-user'
+import { MobileMenu } from '@/components/nav/mobile-menu';
 
 export function Header() {
     const { user } = useUserAuth();
@@ -55,7 +55,7 @@ export function Header() {
                             </Link>
                         )}
                     </nav>
-                    <MobileMenu />
+                    <MobileMenu scroll={scrollToSection} />
                 </div>
             </div>
         </header>
