@@ -37,8 +37,8 @@ export async function updateSession(request: NextRequest) {
         data: { user },
     } = await supabase.auth.getUser()
 
-    // Define your protected routes (e.g., only these require authentication)
-    const protectedPaths = ['/asfdsdf']; // Customize this array
+    // Protected routes
+    const protectedPaths = ['/api'];
 
     // Redirect unauthenticated users from protected routes to login
     if (
@@ -50,7 +50,7 @@ export async function updateSession(request: NextRequest) {
         return NextResponse.redirect(url)
     }
 
-    // Optional: Redirect authenticated users away from auth routes (e.g., to home)
+    // Redirect authenticated users away from auth routes
     const authPaths = ['/auth/login', '/auth/signup'];
 
     if (

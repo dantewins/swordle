@@ -32,8 +32,8 @@ export default function RootLayout({
       <body className={`${poppins.className} antialiased`}>
         <AuthContextProvider>
           {children}
-          <Toaster position="top-right" richColors />
         </AuthContextProvider>
+        <Toaster position="top-right" richColors />
       </body>
     </html>
   );

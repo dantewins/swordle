@@ -39,9 +39,7 @@ export function LoginForm() {
         throw new Error(error || "Login failed");
       }
 
-      console.log("Login successful");
-      // Redirect to dashboard or home page after successful login
-      router.push("/"); // Adjust redirect path as needed
+      router.push("/");
     } catch (err: any) {
       const errorMessage = err.message || "Invalid credentials";
       form.setError("root", { message: errorMessage });

@@ -123,7 +123,10 @@
 @theme {
   --animate-pop: pop 0.1s ease-in-out;
 
-  --animate-ripples: test 0.5s ease-in-out forwards;
+  --animate-ripples-enter: ripples-enter 1.6s ease-in-out;
+  --animate-ripples-exit: ripples-exit 1.6s ease-in-out;
+
+  --animate-flip: flip 1s ease-in-out;
 
   @keyframes pop {
     0% {
@@ -139,41 +142,39 @@
     }
   }
 
-  @keyframes test {
+  @keyframes ripples-enter {
     0% {
-      opacity: 0;
+      clip-path: circle(0 at 50% 50%);
     }
 
     100% {
-      opacity: 1;
+      clip-path: circle(71vmax at 50% 50%);
     }
   }
 
-  @keyframes ripples {
+  @keyframes ripples-exit {
     0% {
-      background-size: 0% 0%, 0% 0%, 0% 0%, 0% 0%, 0% 0%;
-    }
-
-    20% {
-      background-size: 60% 60%, 0% 0%, 0% 0%, 0% 0%, 0% 0%;
-    }
-
-    40% {
-      background-size: 60% 60%, 120% 120%, 0% 0%, 0% 0%, 0% 0%;
-    }
-
-    60% {
-      background-size: 60% 60%, 120% 120%, 180% 180%, 0% 0%, 0% 0%;
-    }
-
-    80% {
-      background-size: 60% 60%, 120% 120%, 180% 180%, 240% 240%, 0% 0%;
+      clip-path: circle(71vmax at 50% 50%);
     }
 
     100% {
-      background-size: 60% 60%, 120% 120%, 180% 180%, 240% 240%, 300% 300%;
+      clip-path: circle(0 at 50% 50%);
     }
   }
+
+  @keyframes flip {
+    from {
+      transform: rotatex(0deg);
+    }
+
+    to {
+      transform: rotateX(180deg);
+    }
+  }
+}
+
+:root {
+  --animate-flip: flip 0.6s ease-in-out forwards;
 }
 
 *::-webkit-scrollbar {
