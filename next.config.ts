@@ -18,11 +18,12 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: "https",
-        hostname: "picsum.photos",
+        hostname: "api.dicebear.com",
         port: "",
         pathname: "/**",
       },
     ],
+    dangerouslyAllowSVG: true,
   },
 };
 

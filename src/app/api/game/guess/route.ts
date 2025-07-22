@@ -136,12 +136,41 @@ export async function POST(req: Request) {
         }
 
         // Prepare response
-        const response = {
+        let response: any = {
             result,
             isWin,
             isGameOver,
-            secret: isGameOver && !isWin ? secret : ''
         };
+
+        if (isGameOver) {
+            response.secret = secret.toLowerCase();
+
+            // Fetch user games to compute stats
+            const { data: userGames, error: gamesError } = await supabase
+                .from('games')
+                .select('status')
+                .eq('user_id', user.id)
+                .in('status', ['won', 'lost'])
+                .order('id', { ascending: false });
+
+            if (gamesError) {
+                console.error('Error fetching games for stats:', gamesError);
+                return NextResponse.json({ error: 'Failed to fetch stats' }, { status: 500 });
+            }
+
+            const wins = userGames.filter(g => g.status === 'won').length;
+            const losses = userGames.length - wins;
+            let currentStreak = 0;
+            for (const game of userGames) {
+                if (game.status === 'won') {
+                    currentStreak++;
+                } else {
+                    break;
+                }
+            }
+
+            response.stats = { wins, losses, currentStreak };
+        }
 
         return NextResponse.json(response);
     } catch (generalError) {

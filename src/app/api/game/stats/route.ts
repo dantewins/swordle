@@ -20,7 +20,7 @@ export async function GET(req: Request) {
         // Fetch game data
         const { data: game, error: gameError } = await supabase
             .from('games')
-            .select('id, type, status, secret_word_id, user_id')
+            .select('id, status, secret_word_id, user_id')
             .eq('id', gameId)
             .eq('user_id', user.id)
             .single();
@@ -83,34 +83,27 @@ export async function GET(req: Request) {
 
         // Calculate current streak
         let currentStreak = 0;
-        if (recentGames && recentGames.length > 0) {
-            for (const g of recentGames) {
-                if (g.status === 'won') {
-                    currentStreak++;
-                } else {
-                    break;
-                }
+        for (const game of recentGames || []) {
+            if (game.status === 'won') {
+                currentStreak++;
+            } else {
+                break;
             }
         }
 
-        const isGameOver = game.status !== 'started';
-
         const responseData = {
-            id: game.id,
-            type: game.type,
-            status: game.status,
             definition: word.definition,
             part_of_speech: word.part_of_speech,
             wordLength: word.word.length,
-            history: history?.map(h => ({ guess: h.guess.toUpperCase(), result: h.result })) || [],
-            isGameOver,
+            history: history || [],
+            status: game.status,
             won: game.status === 'won',
             stats: {
                 wins: wins || 0,
                 losses: losses || 0,
                 currentStreak
             },
-            secret: isGameOver ? word.word : ''
+            secret: word.word.toUpperCase()
         };
         
         return NextResponse.json(responseData);

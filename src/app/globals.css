@@ -164,7 +164,7 @@
 
   @keyframes flip {
     from {
-      transform: rotatex(0deg);
+      transform: rotateX(0deg);
     }
 
     to {

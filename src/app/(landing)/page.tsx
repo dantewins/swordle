@@ -1,21 +1,22 @@
 "use client"
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from '@/components/ui/button';
 import { ArrowRight } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import Image from 'next/image';
-import Link from 'next/link';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import Division from '@/components/landing/division';
 import GameModes from "@/components/landing/game-modes";
+import { useRouter } from 'next/navigation';
+import { Trophy } from 'lucide-react';
+import { createClient } from "@/lib/supabase/client";
 
 const features = [
   {
     id: 1,
     title: "Master SAT Vocabulary Through Engaging Puzzles",
-    date: "July 18, 2025",
+    tag: "Core Gameplay",
     imageUrl:
       "https://framerusercontent.com/images/nrnf6fsUlXbEBhqRsgqVzRKEiF4.jpg?scale-down-to=2048",
     alt: "Abstract representation of words forming a puzzle",
@@ -23,7 +24,7 @@ const features = [
   {
     id: 2,
     title: "Daily Challenges to Boost Your Word Knowledge",
-    date: "July 18, 2025",
+    tag: "Daily Practice",
     imageUrl:
       "https://framerusercontent.com/images/W1H8tFK6H8IKNZOBc6gjtpRP1I.jpg?scale-down-to=1024",
     alt: "Geometric pattern symbolizing daily learning",
@@ -31,39 +32,12 @@ const features = [
   {
     id: 3,
     title: "Fun Way to Prepare for SAT with Wordle Mechanics",
-    date: "July 18, 2025",
+    tag: "Educational Fun",
     imageUrl:
       "https://framerusercontent.com/images/ygE08jgxUDqn1kh6jUnQBualh64.jpg?scale-down-to=1024",
     alt: "Sculpture representing intellectual growth",
   },
 ]
-
-const works = [
-  {
-    title: "FireFly",
-    image: "https://framerusercontent.com/images/NIZVyUxsAfTXib8VDzl1QuAdlUg.png",
-  },
-  {
-    title: "Prola",
-    image: "https://framerusercontent.com/images/IwQGpm16IrG3DUIAqlXEFJefk.png?scale-down-to=1024",
-  },
-  {
-    title: "Kozmo",
-    image: "https://framerusercontent.com/images/VSuH84MNgmwVbJxtGujcvYqTOIg.png?scale-down-to=1024",
-  },
-  {
-    title: "Slate AI",
-    image: "https://framerusercontent.com/images/gnqxx4ffUgrD3uvgo2zKbUeLtk.png?scale-down-to=1024",
-  },
-  {
-    title: "Go Jarvis",
-    image: "https://framerusercontent.com/images/SO8PdMYTO2GQIYvbslUHHJmaUQ.png?scale-down-to=1024",
-  },
-  {
-    title: "Trinity",
-    image: "https://framerusercontent.com/images/JZTFz167pysdqtJV4zXShLQQ.png?scale-down-to=1024",
-  }
-];
 
 const palette = {
   y: "bg-yellow-400",
@@ -81,8 +55,66 @@ const squares: SquareKey[] = [
   "g", "g", "g", "g", "g",
 ];
 
+interface LeaderboardEntry {
+  name: string;
+  wins: number;
+  avatar: string;
+}
+
 export default function LandingPage() {
   const [showModes, setShowModes] = useState(false);
+  const [ongoingGameId, setOngoingGameId] = useState<string | null>(null);
+  const [leaderboardEntries, setLeaderboardEntries] = useState<LeaderboardEntry[]>([]);
+  const router = useRouter();
+
+  useEffect(() => {
+    async function fetchOngoingGame() {
+      try {
+        const res = await fetch('/api/game/fetch?status=started');
+        if (!res.ok) {
+          console.error('Failed to fetch ongoing game');
+          return;
+        }
+        const data = await res.json();
+        if (data.length > 0) {
+          // Sort by created_at descending and take the latest
+          const latest = data.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
+          setOngoingGameId(latest.id);
+        }
+      } catch (error) {
+        console.error('Error fetching ongoing game:', error);
+      }
+    }
+
+    fetchOngoingGame();
+  }, []);
+
+  useEffect(() => {
+    async function fetchLeaderboard() {
+      try {
+        const supabase = createClient();
+        const { data, error } = await supabase.functions.invoke('leaderboard', {
+          method: 'GET',
+        });
+        if (error) {
+          console.error('Error fetching leaderboard:', error);
+          return;
+        }
+        if (data && Array.isArray(data)) {
+          const mappedData = data.map((entry: any) => ({
+            name: entry.username || 'Anonymous',
+            wins: entry.wins,
+            avatar: `https://api.dicebear.com/9.x/bottts-neutral/svg?seed=${encodeURIComponent(entry.user_id)}`,
+          }));
+          setLeaderboardEntries(mappedData);
+        }
+      } catch (error) {
+        console.error('Unexpected error fetching leaderboard:', error);
+      }
+    }
+
+    fetchLeaderboard();
+  }, []);
 
   return (
     <>
@@ -115,12 +147,15 @@ export default function LandingPage() {
                 >
                   Leaderboard
                 </Badge>
-                <Badge
-                  variant="outline"
-                  className="border-black rounded-full text-sm px-2 py-1 hover:text-white hover:bg-black cursor-pointer"
-                >
-                  How to play
-                </Badge>
+                {ongoingGameId && (
+                  <Badge
+                    variant="outline"
+                    className="border-black rounded-full text-sm px-2 py-1 hover:text-white hover:bg-black cursor-pointer"
+                    onClick={() => router.push(`/play/${ongoingGameId}`)}
+                  >
+                    Rejoin
+                  </Badge>
+                )}
               </div>
             </div>
           </div>
@@ -156,7 +191,7 @@ export default function LandingPage() {
                 />
               </div>
               <p className="mt-2 text-sm text-muted-foreground transition-opacity duration-300 ease-in-out group-hover:opacity-50">
-                {feature.date}
+                {feature.tag}
               </p>
               <h2 className="mt-1 text-2xl font-semibold leading-snug transition-opacity duration-300 ease-in-out group-hover:opacity-50">
                 {feature.title}
@@ -166,44 +201,32 @@ export default function LandingPage() {
         </div>
       </div>
 
-      {/* Works section */}
+      {/* Leaderboard section */}
       <div id="leaderboard" className="px-4 sm:px-12 sm:mx-auto sm:max-w-7xl">
         <div className="mt-32 mb-4">
           <Division text="Leaderboard" />
         </div>
-        <div className="mt-4 mb-4 grid gap-8 grid-cols-1 grid-rows-3 lg:grid-cols-2">
-          {works.map((x, i) => (
-            <div key={i} className="h-[73vh] flex items-center justify-center">
-              <Card className="w-full h-full rounded-3xl border-none bg-[#f9fafb] cursor-pointer shadow-none p-0 gap-0">
-                <CardContent className="p-0">
-                  <div className="relative h-[60vh] overflow-hidden">
-                    {x.image && (
-                      <Image
-                        src={x.image}
-                        alt={x.title}
-                        fill
-                        quality={100}
-                        className="object-cover transform ease-in-out duration-300 hover:scale-105"
-                      />
-                    )}
+        <div className="mt-4 mb-4 grid gap-1 grid-cols-1">
+          {leaderboardEntries.map((entry, i) => (
+            <div key={i} className="flex items-center justify-center py-2 hover:scale-101 transition-transform duration-300 ease-in-out">
+              <div className="w-full h-20 flex items-center rounded-lg border-none bg-[#f9fafb] shadow-none">
+                <div className="flex items-center justify-between w-full text-left mx-6">
+                  <div className="flex items-center gap-4">
+                    <span className="flex items-center justify-center w-10 h-10 text-xl font-semibold border-2 border-black rounded-lg">{i + 1}</span>
+                    <Image
+                      src={entry.avatar}
+                      alt={`${entry.name} avatar`}
+                      width={40}
+                      height={40}
+                    />
+                    <h3 className="font-semibold text-lg">{entry.name}</h3>
                   </div>
-                </CardContent>
-
-                <CardFooter className="flex flex-col items-start text-left">
-                  <h3 className="font-semibold text-3xl">{x.title}</h3>
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    {["UI/UX", "Branding", "Motion"].map((item) => (
-                      <Badge
-                        key={item}
-                        variant="outline"
-                        className="border-black rounded-full text-sm px-2 py-1 hover:text-white hover:bg-black cursor-pointer"
-                      >
-                        {item}
-                      </Badge>
-                    ))}
-                  </div>
-                </CardFooter>
-              </Card>
+                  <span className="flex items-center gap-1 text-lg">
+                    {entry.wins}
+                    <Trophy className="w-5 h-5" />
+                  </span>
+                </div>
+              </div>
             </div>
           ))}
         </div>
@@ -213,7 +236,7 @@ export default function LandingPage() {
               variant="outline"
               className="group w-full h-full text-black border-black border-2 rounded-full text-lg px-2 py-1 transition ease-in-out duration-500 hover:text-white hover:bg-black cursor-pointer"
             >
-              All case studies{" "}
+              View full leaderboard{" "}
               <ArrowRight
                 style={{ width: "1.5rem", height: "1.5rem" }}
                 className="transition-transform duration-1000 ease-in-out transform group-hover:rotate-[360deg]"
@@ -231,33 +254,33 @@ export default function LandingPage() {
         <div className="mt-4 mb-32">
           <Accordion type="multiple" className="w-full">
             <AccordionItem value="item-1">
-              <AccordionTrigger value="item-1" iconName="Figma">UI Design</AccordionTrigger>
+              <AccordionTrigger value="item-1" iconName="HelpCircle">How do I play Swordle?</AccordionTrigger>
               <AccordionContent>
-                Our UI design service focuses on crafting intuitive and visually appealing user interfaces that enhance the overall user experience. We pay meticulous attention to detail, ensuring that every element is thoughtfully designed to optimize usability and engagement. Whether it's for web, mobile, or software applications, we strive to create interfaces that not only look great but also function seamlessly.
+                Swordle is played like Wordle but with SAT-level words. You get 6 guesses to figure out the secret word based on a given definition and part of speech. Green means correct letter in the right position, yellow means correct letter in the wrong position, and gray means the letter isn't in the word.
               </AccordionContent>
             </AccordionItem>
             <AccordionItem value="item-2">
-              <AccordionTrigger value="item-2" iconName="Box">Development</AccordionTrigger>
+              <AccordionTrigger value="item-2" iconName="BookOpen">What is SAT Vocabulary?</AccordionTrigger>
               <AccordionContent>
-                Our development service encompasses a wide range of capabilities, from website development to custom software solutions. We leverage the latest technologies and industry best practices to deliver robust, scalable, and high-performance solutions tailored to our clients' specific needs. Whether you're looking to build a responsive website, a complex web application, or streamline your business processes with custom software, our team of experienced developers is ready to bring your vision to life.
+                SAT vocabulary refers to advanced words commonly tested on the SAT exam. Swordle uses a curated list of these words to help players expand their vocabulary in a fun, interactive way through daily puzzles and solo games.
               </AccordionContent>
             </AccordionItem>
             <AccordionItem value="item-3">
-              <AccordionTrigger value="item-3" iconName="Pen">Branding</AccordionTrigger>
+              <AccordionTrigger value="item-3" iconName="Users">Can I play with friends?</AccordionTrigger>
               <AccordionContent>
-                With our branding service, we help businesses establish a strong and memorable brand identity that sets them apart from the competition. From logo design to brand strategy, we work closely with our clients to develop cohesive brand assets that effectively communicate their values, personality, and vision. Whether you're a startup looking to make a splash or an established company in need of a brand refresh, we're here to help you make a lasting impression.
+                Yes! Swordle supports multiplayer modes where you can challenge friends to guess the same word or compete in real-time. Check out the game modes for more options like solo, daily, and multiplayer.
               </AccordionContent>
             </AccordionItem>
             <AccordionItem value="item-4">
-              <AccordionTrigger value="item-4" iconName="MonitorPlay">Animation</AccordionTrigger>
+              <AccordionTrigger value="item-4" iconName="Trophy">How does the leaderboard work?</AccordionTrigger>
               <AccordionContent>
-                Bring your ideas to life with our animation service. Whether you're looking to create eye-catching explainer videos, dynamic motion graphics, or immersive 3D animations, we have the expertise to turn your concepts into captivating visual experiences. Our talented animators combine creativity with technical skill to deliver animations that engage and delight audiences across various platforms and mediums.
+                The leaderboard ranks players based on wins, streaks, and total games played. Climb the ranks by winning games and maintaining long streaks. Daily challenges contribute to your overall stats.
               </AccordionContent>
             </AccordionItem>
             <AccordionItem value="item-5">
-              <AccordionTrigger value="item-5" iconName="Film">Motion</AccordionTrigger>
+              <AccordionTrigger value="item-5" iconName="Calendar">Are there daily puzzles?</AccordionTrigger>
               <AccordionContent>
-                Elevate your digital presence with our motion design service. From interactive website elements to captivating social media content, we specialize in creating dynamic motion graphics that enhance user engagement and brand storytelling. Whether it's adding subtle animations to enhance user interactions or producing full-motion videos to showcase your products or services, we'll help you stand out in today's crowded digital landscape.
+                Absolutely! Swordle offers a new daily puzzle every day with a unique SAT word. Complete it to build your streak and compare your performance with others on the leaderboard.
               </AccordionContent>
             </AccordionItem>
           </Accordion>
@@ -267,53 +290,32 @@ export default function LandingPage() {
       {/* Footer */}
       <div className="px-4 sm:px-12 sm:mx-auto sm:max-w-7xl">
         <div className="mb-16">
-          <footer className="h-[45rem] bg-[#171616] text-white rounded-[50px] flex flex-col px-4">
-            {/* Main Content (Headline + CTA) */}
-            <div className="mt-10 mx-auto max-w-7xl w-full text-center flex-grow flex flex-col items-center justify-center">
+          <footer className="h-[45rem] bg-[#171616] text-white rounded-[50px] flex flex-col justify-between px-4">
+            <div className="mt-6 mx-auto max-w-7xl w-full text-center flex-1 flex flex-col items-center justify-center">
               <h2 className="font-bold text-5xl sm:text-6xl md:text-7xl lg:text-8xl tracking-[-0.05em]">
-                Let’s create your
+                Ready to Master
                 <br />
-                next big idea.
+                the SAT?
               </h2>
-
-              <div className="mt-12">
+              <div className="mt-10">
                 <Button
                   variant="outline"
-                  className="group h-full text-black rounded-full text-lg py-3 transition ease-in-out duration-500 cursor-pointer"
+                  className="group h-full text-black rounded-full text-lg !py-3 transition ease-in-out duration-500 cursor-pointer"
+                  size="lg"
                 >
-                  Schedule a call{" "}
+                  Play now{" "}
                   <ArrowRight
                     style={{ width: "1.5rem", height: "1.5rem" }}
                     className="transition-transform duration-1000 ease-in-out transform group-hover:rotate-[360deg]"
                   />
                 </Button>
               </div>
-            </div>
-
-            {/* Bottom Nav + Copyright */}
-            <div className="mx-auto max-w-7xl w-full text-center mb-28 font-semibold">
-              <nav className="flex flex-wrap justify-center gap-6 text-md sm:text-lg">
-                <a href="#" className="transition duration-300 ease-in-out hover:opacity-75">
-                  Home
-                </a>
-                <a href="#" className="transition duration-300 ease-in-out hover:opacity-75">
-                  Case studies
-                </a>
-                <a href="#" className="transition duration-300 ease-in-out hover:opacity-75">
-                  About
-                </a>
-                <a href="#" className="transition duration-300 ease-in-out hover:opacity-75">
-                  Contact
-                </a>
-                <a href="#" className="transition duration-300 ease-in-out hover:opacity-75">
-                  Blog
-                </a>
-                <a href="#" className="transition duration-300 ease-in-out hover:opacity-75">
-                  Terms
-                </a>
-              </nav>
+              <a href="#" className="mt-12 transition duration-300 ease-in-out hover:opacity-75 text-md sm:text-lg">
+                Made with ❤️ by Danny Kim
+              </a>
             </div>
           </footer>
+
         </div>
       </div>
 
