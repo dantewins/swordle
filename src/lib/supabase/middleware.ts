@@ -38,7 +38,12 @@ export async function updateSession(request: NextRequest) {
     } = await supabase.auth.getUser()
 
     // Protected routes
-    const protectedPaths = ['/api'];
+    const protectedPaths = ['/play'];
+
+    if (!user && request.nextUrl.pathname.startsWith('/api')) {
+        console.log(request.nextUrl.pathname)
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
 
     // Redirect unauthenticated users from protected routes to login
     if (
@@ -47,7 +52,7 @@ export async function updateSession(request: NextRequest) {
     ) {
         const url = request.nextUrl.clone()
         url.pathname = '/auth/login'
-        return NextResponse.redirect(url)
+        return NextResponse.redirect(url, 302)
     }
 
     // Redirect authenticated users away from auth routes
@@ -59,7 +64,7 @@ export async function updateSession(request: NextRequest) {
     ) {
         const url = request.nextUrl.clone()
         url.pathname = '/'
-        return NextResponse.redirect(url)
+        return NextResponse.redirect(url, 302)
     }
 
     // IMPORTANT: You *must* return the supabaseResponse object as it is.

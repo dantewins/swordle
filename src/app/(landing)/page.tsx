@@ -11,6 +11,7 @@ import GameModes from "@/components/landing/game-modes";
 import { useRouter } from 'next/navigation';
 import { Trophy } from 'lucide-react';
 import { createClient } from "@/lib/supabase/client";
+import { useUserAuth } from '@/context/AuthContext';
 
 const features = [
   {
@@ -65,29 +66,35 @@ export default function LandingPage() {
   const [showModes, setShowModes] = useState(false);
   const [ongoingGameId, setOngoingGameId] = useState<string | null>(null);
   const [leaderboardEntries, setLeaderboardEntries] = useState<LeaderboardEntry[]>([]);
+  const { user } = useUserAuth();
   const router = useRouter();
 
   useEffect(() => {
+    if (!user) {
+      setOngoingGameId(null);
+      return;
+    }
+
+    let cancelled = false;
     async function fetchOngoingGame() {
       try {
         const res = await fetch('/api/game/fetch?status=started');
-        if (!res.ok) {
-          console.error('Failed to fetch ongoing game');
-          return;
-        }
+        if (!res.ok || cancelled) return;
         const data = await res.json();
-        if (data.length > 0) {
-          // Sort by created_at descending and take the latest
-          const latest = data.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
-          setOngoingGameId(latest.id);
+        if (Array.isArray(data) && data.length) {
+          const latest = data
+            .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+          [0];
+          if (!cancelled) setOngoingGameId(latest.id);
         }
-      } catch (error) {
-        console.error('Error fetching ongoing game:', error);
+      } catch (e) {
+        console.error(e);
       }
     }
-
     fetchOngoingGame();
-  }, []);
+
+    return () => { cancelled = true; };
+  }, [user]);
 
   useEffect(() => {
     async function fetchLeaderboard() {

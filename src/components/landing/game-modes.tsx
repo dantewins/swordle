@@ -91,7 +91,11 @@ export default function GameModes({ onClose }: GameModesProps) {
       toast.success("Game created successfully!", { duration: 2000 });
       setTimeout(() => router.push(`/play/${game.id}`), 1000);
     } catch (error: any) {
-      toast.error(error.message || "An unexpected error occurred while creating the game");
+      if (error.message === "Unauthorized") {
+        router.push('/auth/login');
+      } else {
+        toast.error(error.message || "An unexpected error occurred while creating the game");
+      }
     } finally {
       setLoading(false)
       setSelected("");
@@ -177,7 +181,7 @@ export default function GameModes({ onClose }: GameModesProps) {
             </CardContent>
             <CardFooter className="flex justify-end items-end hidden h-0 lg:flex lg:h-24">
               <Button variant="default" className="bg-white/20 backdrop-blur-sm flex items-center justify-center transition ease-in-out hover:bg-white/10 hover:cursor-pointer" onClick={() => generateGame(mode.type)} disabled={mode.disabled}>
-                {mode.disabled ? "Coming soon..." : "Play Now"} {loading && selected === mode.type ? <Loader2 className="h-4 w-4 animate-spin"/> : ""}
+                {mode.disabled ? "Coming soon..." : "Play Now"} {loading && selected === mode.type ? <Loader2 className="h-4 w-4 animate-spin" /> : ""}
               </Button>
             </CardFooter>
           </Card>

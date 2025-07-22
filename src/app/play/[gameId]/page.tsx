@@ -36,10 +36,6 @@ export default function GamePage() {
 
             try {
                 const res = await fetch(`/api/game?id=${gameId}`);
-                if (!res.ok) {
-                    router.push('/');
-                    return;
-                }
 
                 const data = await res.json();
                 setDefinition(data.definition || '');
@@ -72,7 +68,6 @@ export default function GamePage() {
                 setLoading(false);
             } catch (error: any) {
                 toast.error(error.message || "An unexpected error occurred while creating the game");
-                router.push('/');
             }
         };
 
