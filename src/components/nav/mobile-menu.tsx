@@ -8,17 +8,33 @@ import { Menu, X } from "lucide-react"
 import { Button } from "@/components/ui/button";
 import type { Variants } from "framer-motion";
 
-export function MobileMenu({ scroll } : { scroll: (sectionId: string) => void }) {
+export function MobileMenu({ scroll }: { scroll: (sectionId: string) => void }) {
     const [open, setOpen] = useState(false);
     const [portalNode, setPortalNode] = useState<HTMLElement | null>(null);
 
     useEffect(() => setPortalNode(document.body), []);
 
     useEffect(() => {
-        if (!portalNode) return;
-        portalNode.classList.toggle("overflow-hidden", open);
-        return () => portalNode.classList.remove("overflow-hidden");
-    }, [open, portalNode]);
+        if (open) {
+            const scrollY = window.scrollY;
+            document.body.style.position = 'fixed';
+            document.body.style.top = `-${scrollY}px`;
+            document.body.style.width = '100%';
+        } else {
+            const scrollY = document.body.style.top;
+            document.body.style.position = '';
+            document.body.style.top = '';
+            document.body.style.width = '';
+            if (scrollY) {
+                window.scrollTo(0, parseInt(scrollY) * -1);
+            }
+        }
+        return () => {
+            document.body.style.position = '';
+            document.body.style.top = '';
+            document.body.style.width = '';
+        };
+    }, [open]);
 
     useEffect(() => {
         const mq = window.matchMedia("(min-width: 640px)");
@@ -101,8 +117,12 @@ export function MobileMenu({ scroll } : { scroll: (sectionId: string) => void })
                                     size="lg"
                                     asChild
                                     className="w-full text-lg mb-4"
+                                    onClick={() => {
+                                        setOpen(false)
+                                        scroll('play-button');
+                                    }}
                                 >
-                                    <Link href="/play" onClick={() => setOpen(false)}>
+                                    <Link href="#" >
                                         Play
                                     </Link>
                                 </Button>

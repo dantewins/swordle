@@ -69,6 +69,13 @@ export default function LandingPage() {
   const { user } = useUserAuth();
   const router = useRouter();
 
+  const scrollToSection = (sectionId: string) => {
+    const element = document.getElementById(sectionId);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  };
+
   useEffect(() => {
     if (!user) {
       setOngoingGameId(null);
@@ -142,6 +149,7 @@ export default function LandingPage() {
               </p>
               <div className="flex gap-2">
                 <Badge
+                  id="play-button"
                   variant="outline"
                   className="border-black rounded-full text-sm px-3 py-1 hover:text-white hover:bg-black cursor-pointer"
                   onClick={() => setShowModes(true)}
@@ -151,6 +159,7 @@ export default function LandingPage() {
                 <Badge
                   variant="outline"
                   className="border-black rounded-full text-sm px-2 py-1 hover:text-white hover:bg-black cursor-pointer"
+                  onClick={() => scrollToSection('leaderboard')}
                 >
                   Leaderboard
                 </Badge>
@@ -309,6 +318,7 @@ export default function LandingPage() {
                   variant="outline"
                   className="group h-full text-black rounded-full text-lg !py-3 transition ease-in-out duration-500 cursor-pointer"
                   size="lg"
+                  onClick={() => scrollToSection('play-button')}
                 >
                   Play now{" "}
                   <ArrowRight
