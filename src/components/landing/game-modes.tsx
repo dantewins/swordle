@@ -169,18 +169,30 @@ export default function GameModes({ onClose }: GameModesProps) {
       >
         {modes.map((mode, index) => (
           <Card
-            className={`border-none w-full max-w-md mx-auto ${palette[mode.id]} overflow-hidden rounded-none shadow-xl ${cardsVisible[index] ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'} hover:scale-103 hover:shadow-2xl sm:cursor-pointer transition-all duration-300 ease-in-out`}
+            className={`border-none w-full max-w-md mx-auto ${palette[mode.id]} overflow-hidden rounded-none shadow-xl ${cardsVisible[index] ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'} hover:scale-103 hover:shadow-2xl sm:cursor-pointer transition-all duration-300 ease-in-out ${!mode.disabled && !loading ? 'lg:cursor-default cursor-pointer' : ''}`}
             key={index}
+            onClick={() => {
+              if (!mode.disabled && !loading) {
+                generateGame(mode.type);
+              }
+            }}
           >
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-2xl font-bold text-white">{mode.title}</CardTitle>
+              <CardTitle className="text-2xl font-bold text-white">
+                {mode.title} {loading && selected === mode.type && <Loader2 className="inline-block h-4 w-4 animate-spin ml-2" />}
+              </CardTitle>
               <span className="text-4xl">{mode.icon}</span>
             </CardHeader>
             <CardContent className="lg:min-h-[120px] min-h-0 hidden lg:inline">
               <CardDescription className="text-white/90 text-md">{mode.description}</CardDescription>
             </CardContent>
             <CardFooter className="flex justify-end items-end hidden h-0 lg:flex lg:h-24">
-              <Button variant="default" className="bg-white/20 backdrop-blur-sm flex items-center justify-center transition ease-in-out hover:bg-white/10 hover:cursor-pointer" onClick={() => generateGame(mode.type)} disabled={mode.disabled}>
+              <Button 
+                variant="default" 
+                className="bg-white/20 backdrop-blur-sm flexed items-center justify-center transition ease-in-out hover:bg-white/10 hover:cursor-pointer" 
+                onClick={() => generateGame(mode.type)} 
+                disabled={mode.disabled || (loading && selected === mode.type)}
+              >
                 {mode.disabled ? "Coming soon..." : "Play Now"} {loading && selected === mode.type ? <Loader2 className="h-4 w-4 animate-spin" /> : ""}
               </Button>
             </CardFooter>
