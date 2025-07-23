@@ -4,11 +4,13 @@ import { useState, useEffect } from "react";
 import ReactDOM from "react-dom";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X } from "lucide-react"
+import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { Variants } from "framer-motion";
+import { useUserAuth } from '@/context/AuthContext';
 
 export function MobileMenu({ scroll }: { scroll: (sectionId: string) => void }) {
+    const { user, signOut } = useUserAuth();
     const [open, setOpen] = useState(false);
     const [portalNode, setPortalNode] = useState<HTMLElement | null>(null);
 
@@ -95,10 +97,10 @@ export function MobileMenu({ scroll }: { scroll: (sectionId: string) => void }) 
                                     transition={{ delay: index * 0.1 }}
                                 >
                                     <Button variant="ghost" className="w-full justify-start text-xl px-4" size="lg" onClick={() => {
-                                        setOpen(false)
+                                        setOpen(false);
                                         setTimeout(() => {
-                                            scroll(item.toLowerCase())
-                                        }, 400)
+                                            scroll(item.toLowerCase());
+                                        }, 400);
                                     }}>
                                         {item}
                                     </Button>
@@ -118,11 +120,11 @@ export function MobileMenu({ scroll }: { scroll: (sectionId: string) => void }) 
                                     asChild
                                     className="w-full text-lg mb-4"
                                     onClick={() => {
-                                        setOpen(false)
+                                        setOpen(false);
                                         scroll('play-button');
                                     }}
                                 >
-                                    <Link href="#" >
+                                    <Link href="#">
                                         Play
                                     </Link>
                                 </Button>
@@ -133,14 +135,30 @@ export function MobileMenu({ scroll }: { scroll: (sectionId: string) => void }) 
                                 exit={{ opacity: 0, y: 20 }}
                                 transition={{ delay: 0.5 }}
                             >
-                                <Button
-                                    size="lg"
-                                    className="w-full text-lg"
-                                >
-                                    Sign out
-                                </Button>
+                                {user ? (
+                                    <Button
+                                        size="lg"
+                                        className="w-full text-lg"
+                                        onClick={async () => {
+                                            await signOut()
+                                            setOpen(false);
+                                        }}
+                                    >
+                                        Sign out
+                                    </Button>
+                                ) : (
+                                    <Button
+                                        size="lg"
+                                        className="w-full text-lg"
+                                        asChild
+                                        onClick={() => setOpen(false)}
+                                    >
+                                        <Link href="/auth/login">
+                                            Sign in
+                                        </Link>
+                                    </Button>
+                                )}
                             </motion.div>
-
                         </div>
                     </motion.nav>
                 </>
