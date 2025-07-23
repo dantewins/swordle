@@ -31,6 +31,7 @@ export async function POST(req: NextRequest) {
             .from('games')
             .select('id')
             .eq('user_id', user.id)
+            .eq('type', type)
             .eq('status', 'started')
             .limit(1);
 

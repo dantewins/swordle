@@ -46,7 +46,7 @@ const modes: Mode[] = [
     description: "Join a queue, match with an opponent, and compete to guess the SAT word in fewer attempts.",
     alt: "Competitive geometric pattern",
     icon: "🏆",
-    disabled: true,
+    disabled: false,
   },
   {
     id: 2,
@@ -187,10 +187,13 @@ export default function GameModes({ onClose }: GameModesProps) {
               <CardDescription className="text-white/90 text-md">{mode.description}</CardDescription>
             </CardContent>
             <CardFooter className="flex justify-end items-end hidden h-0 lg:flex lg:h-24">
-              <Button 
-                variant="default" 
-                className="bg-white/20 backdrop-blur-sm flexed items-center justify-center transition ease-in-out hover:bg-white/10 hover:cursor-pointer" 
-                onClick={() => generateGame(mode.type)} 
+              <Button
+                variant="default"
+                className="bg-white/20 backdrop-blur-sm flexed items-center justify-center transition ease-in-out hover:bg-white/10 hover:cursor-pointer"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  generateGame(mode.type);
+                }}
                 disabled={mode.disabled || (loading && selected === mode.type)}
               >
                 {mode.disabled ? "Coming soon..." : "Play Now"} {loading && selected === mode.type ? <Loader2 className="h-4 w-4 animate-spin" /> : ""}

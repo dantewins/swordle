@@ -77,7 +77,7 @@ export default function LandingPage() {
   };
 
   useEffect(() => {
-    if (!user) {
+    if (!user?.id) {
       setOngoingGameId(null);
       return;
     }
@@ -85,7 +85,7 @@ export default function LandingPage() {
     let cancelled = false;
     async function fetchOngoingGame() {
       try {
-        const res = await fetch('/api/game/fetch?status=started');
+        const res = await fetch('/api/games?status=started');
         if (!res.ok || cancelled) return;
         const data = await res.json();
         if (Array.isArray(data) && data.length) {
@@ -101,7 +101,7 @@ export default function LandingPage() {
     fetchOngoingGame();
 
     return () => { cancelled = true; };
-  }, [user]);
+  }, [user?.id]);
 
   useEffect(() => {
     async function fetchLeaderboard() {
