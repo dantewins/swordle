@@ -37,6 +37,11 @@ export default function GamePage() {
             try {
                 const res = await fetch(`/api/game?id=${gameId}`);
 
+                if (!res.ok) {
+                    router.push('/');
+                    return;
+                }
+
                 const data = await res.json();
                 setDefinition(data.definition || '');
                 setPartOfSpeech(data.part_of_speech || '');
