@@ -55,6 +55,8 @@ const modes: Mode[] = [
   },
 ];
 
+// make play redirect to their ongoing game if it exists
+
 export default function GameModes({ onClose, onQueueRequest, queueing, setQueueing, queueingRef }: { onClose: () => void, onQueueRequest: () => void, queueing: boolean, setQueueing: (value: boolean) => void, queueingRef: React.MutableRefObject<boolean> }) {
   const [backdropVisible, setBackdropVisible] = useState(false);
   const [cardsVisible, setCardsVisible] = useState<boolean[]>(new Array(modes.length).fill(false));
