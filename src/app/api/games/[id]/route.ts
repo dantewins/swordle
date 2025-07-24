@@ -47,7 +47,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
             isGameOver,
             won: game.status === 'won',
             stats,
-            secret: isGameOver ? word.word.toUpperCase() : ''
+            secret: isGameOver ? word.word : ''
         });
     } catch (error: any) {
         return NextResponse.json({ error: error.message || 'An unexpected error occurred' }, { status: 500 });

@@ -1,4 +1,3 @@
-// /api/games/route.ts
 import { NextResponse, NextRequest } from "next/server";
 import { createClient } from '@/lib/supabase/server';
 import { getAuthenticatedUser } from '@/lib/game';
@@ -9,7 +8,6 @@ export async function GET(req: Request) {
         const user = await getAuthenticatedUser(supabase);
         const { searchParams } = new URL(req.url);
 
-        // List games (/api/games?filters...)
         let query = supabase.from('games').select('*').eq('user_id', user.id).order('created_at', { ascending: false });
 
         const filters = ['id', 'type', 'status', 'created_at'];

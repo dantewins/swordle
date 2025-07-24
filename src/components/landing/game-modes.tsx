@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useRouter } from 'next/navigation'
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import Queue from '@/components/game/queue';
 
 interface GameModesProps {
   onClose: () => void;
@@ -64,7 +65,8 @@ export default function GameModes({ onClose }: GameModesProps) {
   const [cardsVisible, setCardsVisible] = useState<boolean[]>(new Array(modes.length).fill(false));
   const [isExiting, setIsExiting] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [selected, setSelected] = useState<String>("");
+  const [selected, setSelected] = useState<string>("");
+  const [showQueue, setShowQueue] = useState(false); // New state for showing Queue
   const router = useRouter();
 
   const generateGame = async (type: string) => {
@@ -72,7 +74,7 @@ export default function GameModes({ onClose }: GameModesProps) {
       setLoading(true);
       setSelected(type);
 
-      const res = await fetch("/api/game/create", {
+      const res = await fetch("/api/games", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ type }),
@@ -100,6 +102,11 @@ export default function GameModes({ onClose }: GameModesProps) {
       setLoading(false)
       setSelected("");
     }
+  };
+
+  const handleMatchFound = (gameId: string) => {
+    toast.success("Matched! Game starting...");
+    router.push(`/play/${gameId}`);
   };
 
   useEffect(() => {
@@ -173,7 +180,11 @@ export default function GameModes({ onClose }: GameModesProps) {
             key={index}
             onClick={() => {
               if (!mode.disabled && !loading) {
-                generateGame(mode.type);
+                if (mode.type === 'multiplayer') {
+                  setShowQueue(true);
+                } else {
+                  generateGame(mode.type);
+                }
               }
             }}
           >
@@ -192,7 +203,11 @@ export default function GameModes({ onClose }: GameModesProps) {
                 className="bg-white/20 backdrop-blur-sm flexed items-center justify-center transition ease-in-out hover:bg-white/10 hover:cursor-pointer"
                 onClick={(e) => {
                   e.stopPropagation();
-                  generateGame(mode.type);
+                  if (mode.type === 'multiplayer') {
+                    setShowQueue(true);
+                  } else {
+                    generateGame(mode.type);
+                  }
                 }}
                 disabled={mode.disabled || (loading && selected === mode.type)}
               >
@@ -202,6 +217,20 @@ export default function GameModes({ onClose }: GameModesProps) {
           </Card>
         ))}
       </div>
+
+      
+        <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-white p-6 rounded-lg shadow-xl">
+            <Queue onMatchFound={(gameId) => {
+              setShowQueue(false);
+              router.push(`/play/${gameId}`);
+            }} />
+            <Button onClick={() => setShowQueue(false)} variant="outline" className="mt-4">
+              Cancel
+            </Button>
+          </div>
+        </div>
+      )
     </div>
   );
 }

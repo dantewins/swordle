@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { toast } from 'sonner'
+import confetti from 'canvas-confetti'
 
 export default function GamePage() {
     const maxGuesses = 6
@@ -35,7 +36,7 @@ export default function GamePage() {
             if (!gameId) return;
 
             try {
-                const res = await fetch(`/api/game?id=${gameId}`);
+                const res = await fetch(`/api/games/${gameId}`);
 
                 if (!res.ok) {
                     router.push('/');
@@ -97,16 +98,28 @@ export default function GamePage() {
         })
     }
 
+    useEffect(() => {
+        if (won && !loading && isBoardLoaded) {
+            setTimeout(() => {
+                confetti({
+                    particleCount: 100,
+                    spread: 70,
+                    origin: { y: 0.6 }
+                });
+            }, 500);
+        }
+    }, [won, loading, isBoardLoaded]);
+
     const handleGuess = async () => {
         if (current.length !== wordLength || guessLoading) return
 
         setGuessLoading(true)
         try {
-            const res = await fetch('/api/game/guess', {
+            const res = await fetch(`/api/games/${gameId}/guess`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ game_id: gameId, guess: current })
-            })
+                body: JSON.stringify({ guess: current })
+            });
 
             if (!res.ok) {
                 const errorData = await res.json();
@@ -122,6 +135,13 @@ export default function GamePage() {
                 setWon(true)
                 setGameOver(true)
                 setDialogOpen(true)
+                setTimeout(() => {
+                  confetti({
+                    particleCount: 100,
+                    spread: 70,
+                    origin: { y: 0.6 }
+                  });
+                }, 500);
             } else if (isGameOver) {
                 setGameOver(true)
                 setDialogOpen(true)
@@ -181,7 +201,7 @@ export default function GamePage() {
         try {
             setButtonLoading(true)
 
-            const res = await fetch("/api/game/create", {
+            const res = await fetch("/api/games", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ type: 'solo' })
@@ -234,30 +254,23 @@ export default function GamePage() {
                     let letter = ''
                     let bg = 'bg-white'
                     let text = 'text-black'
-                    let border = 'border-2 border-gray-300'
 
                     if (r < history.length) {
                         const { guess, result } = history[r]
                         letter = guess[c]
 
-                        border = r < history.length ? 'border-2 border-gray-300' : 'border-0'
-
                         if (result[c] === 'correct') {
                             bg = 'bg-green-600'
                             text = 'text-white'
-                            border = 'border-0'
                         } else if (result[c] === 'present') {
                             bg = 'bg-yellow-400'
                             text = 'text-white'
-                            border = 'border-0'
                         } else if (result[c] === 'absent') {
                             bg = 'bg-gray-400'
                             text = 'text-white'
-                            border = 'border-0'
                         }
                     } else if (r === history.length && c < current.length) {
                         letter = current[c]
-                        border = letter && 'animate-pop' in document.documentElement.style ? 'border-2 border-gray-300' : 'border-2 border-gray-300'
                     }
 
                     return (
@@ -329,7 +342,7 @@ export default function GamePage() {
             )}
             {stats && (
                 <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-                    <DialogContent className="sm:max-w-md rounded-lg bg-white shadow-xl border border-gray-200">
+                    <DialogContent className="sm:max-w-md rounded-lg bg-white shadow-xl border border-gray-200" onOpenAutoFocus={(e) => e.preventDefault()}>
                         <div className="relative">
                             <DialogHeader>
                                 <DialogTitle className="text-3xl font-bold text-center mt-2">
@@ -340,7 +353,7 @@ export default function GamePage() {
                                         The word was <span className="font-semibold">{secret}</span>.
                                     </div>
                                 </DialogDescription>
-                                <div className="grid grid-cols-3 gap-4 mb-6 bg-gray-50 p-4 rounded-lg">
+                                <div className="grid grid-cols-3 gap-4 mb-4 bg-gray-50 p-4 rounded-lg">
                                     <div className="flex flex-col items-center">
                                         <span className="text-sm font-medium text-gray-500">Wins</span>
                                         <span className="text-xl font-bold text-gray-800">{stats.wins}</span>
