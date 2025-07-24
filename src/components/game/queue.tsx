@@ -1,153 +1,145 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { createClient } from "@/lib/supabase/client"; // Assuming client-side Supabase setup
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, useRef } from "react";
+import { createClient } from "@/lib/supabase/client";
+import { getAuthenticatedUser } from "@/lib/game";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { getAuthenticatedUser } from '@/lib/game';
 
-interface Presence {
-    user_id: string;
-}
+interface Presence { user_id: string }
 
-export default function Queue({ onMatchFound }: { onMatchFound: (gameId: string) => void }) {
-    const [inQueue, setInQueue] = useState(false);
-    const [queueLength, setQueueLength] = useState(0);
-    const [loading, setLoading] = useState(false);
+export default function Queue({ onMatchFound, onCancel }: { onMatchFound: (gameId: string) => void, onCancel: () => void }) {
     const [userId, setUserId] = useState<string | null>(null);
-    const [toastId, setToastId] = useState<string | number | null>(null);
-    const router = useRouter();
-    const supabase = createClient();
+    const supabase = useRef(createClient()).current;
+    const toastId = useRef<string | number | null>(null);
+    const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+    const hasMatchedRef = useRef(false);
 
     useEffect(() => {
-        const fetchUser = async () => {
+        let cancelled = false;
+        (async () => {
             try {
                 const user = await getAuthenticatedUser(supabase);
+                if (cancelled) return;
                 setUserId(user.id);
-            } catch (error) {
-                toast.error("Failed to get user. Please log in.");
+            } catch {
+                toast.error("You need to be logged in to play.");
             }
-        };
-        fetchUser();
+        })();
+        return () => { cancelled = true };
     }, [supabase]);
 
     useEffect(() => {
-        if (!inQueue || !userId) return;
+        if (!userId) return;
+        const channel = supabase.channel("matchmaking");
+        channelRef.current = channel;
 
-        const channel = supabase.channel('matchmaking');
-
-        channel.on('presence', { event: 'sync' }, () => {
-            const presenceState = channel.presenceState<{ user_id: string }>();
-            const players = Object.values(presenceState).flat() as Presence[];
-            setQueueLength(players.length);
-
-            // Simple matchmaking: If >=2 players, match the first two
-            if (players.length >= 2) {
-                // Assuming you're players.find(p => p.user_id === userId), match with another
-                const opponent = players.find(p => p.user_id !== userId);
-                if (opponent) {
-                    generateGame().then((game) => {
-                        // Broadcast the match to the opponent
-                        channel.send({
-                            type: 'broadcast',
-                            event: 'match',
-                            payload: { gameId: game.id, opponent: opponent.user_id }
-                        });
-                        onMatchFound(game.id); // Or router.push(`/play/${game.id}`)
-                    });
+        channel.on("presence", { event: "sync" }, () => {
+            const players = Object.values(channel.presenceState<Presence>()).flat();
+            if (players.length >= 2 && !hasMatchedRef.current) {
+                const sortedIds = players.map(p => p.user_id).sort();
+                const hostId = sortedIds[0];
+                if (hostId === userId) {
+                    hasMatchedRef.current = true;
+                    createGame()
+                        .then(game => {
+                            channel.send({
+                                type: "broadcast",
+                                event: "match",
+                                payload: { gameId: game.id, opponent: sortedIds.find(id => id !== userId) },
+                            });
+                            finish(game.id);
+                        })
+                        .catch(() => { hasMatchedRef.current = false });
                 }
             }
         });
 
-        // Listen for match broadcasts
-        channel.on('broadcast', { event: 'match' }, ({ payload }) => {
-            if (payload.opponent === userId) {
-                onMatchFound(payload.gameId); // Or router.push(`/play/${payload.gameId}`)
+        channel.on("broadcast", { event: "match" }, async ({ payload }) => {
+            if (payload.opponent === userId && !hasMatchedRef.current) {
+                hasMatchedRef.current = true;
+                const res = await fetch(`/api/games/${payload.gameId}/join`, { method: "POST" });
+                if (!res.ok) {
+                    const { error } = await res.json().catch(() => ({ error: "Join failed" }));
+                    toast.error(error || "Failed to join game");
+                    hasMatchedRef.current = false;
+                    return;
+                }
+                finish(payload.gameId);
             }
         });
 
-        channel.subscribe(async (status) => {
-            if (status === 'SUBSCRIBED') {
+        channel.subscribe(async status => {
+            if (status === "SUBSCRIBED") {
                 await channel.track({ user_id: userId });
             }
         });
 
-        return () => {
-            channel.unsubscribe();
+        return () => { channel.unsubscribe() };
+    }, [userId]);
+
+    useEffect(() => {
+        const started = Date.now();
+        const format = (ms: number) => {
+            const total = Math.floor(ms / 1000);
+            const m = String(Math.floor(total / 60)).padStart(2, "0");
+            const s = String(total % 60).padStart(2, "0");
+            return `${m}:${s}`;
         };
-    }, [inQueue, userId]);
 
-    const generateGame = async () => {
-        try {
-            setLoading(true);
-            const res = await fetch("/api/games", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ type: 'multiplayer' }),
-            });
-
-            if (!res.ok) throw new Error('Failed to create multiplayer game');
-
-            const game = await res.json();
-            toast.success("Matched! Game starting...");
-            return game;
-        } catch (error: any) {
-            toast.error(error.message);
-            throw error;
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const joinQueue = () => {
-        if (!userId) {
-            toast.error("User not loaded. Try again.");
-            return;
-        }
-        setInQueue(true);
-        const id = toast.loading('Searching for match...', {
+        toastId.current = toast.message("Searching for an opponent", {
+            description: format(Date.now() - started),
             duration: Infinity,
-            position: 'top-center',
-            action: {
-                label: 'Cancel',
-                onClick: () => leaveQueue(),
-            },
+            position: "top-center",
+            action: { label: "Cancel", onClick: cancel },
         });
-        setToastId(id);
+
+        const interval = setInterval(() => {
+            if (toastId.current) {
+                toast.message("Searching for an opponent", {
+                    id: toastId.current,
+                    description: format(Date.now() - started),
+                    duration: Infinity,
+                    position: "top-center",
+                    action: { label: "Cancel", onClick: cancel },
+                });
+            }
+        }, 1000);
+
+        return () => {
+            clearInterval(interval);
+            if (toastId.current) {
+                toast.dismiss(toastId.current);
+                toastId.current = null;
+            }
+        };
+    }, []);
+
+    const cancel = () => {
+        channelRef.current?.unsubscribe();
+        if (toastId.current) toast.dismiss(toastId.current);
+        toastId.current = null;
+        onCancel();
     };
 
-    const leaveQueue = () => {
-        setInQueue(false);
-        if (toastId) {
-            toast.dismiss(toastId);
-            setToastId(null);
-        }
+    const finish = (gameId: string) => {
+        if (toastId.current)
+            toast.success("Match found", {
+                description: "Redirecting to your game",
+                id: toastId.current,
+                duration: 1000,
+            });
+        setTimeout(() => onMatchFound(gameId), 1000);
     };
 
-    const handleMatchFound = (gameId: string) => {
-        if (toastId) {
-            toast.dismiss(toastId);
-            setToastId(null);
-        }
-        onMatchFound(gameId);
+    const createGame = async () => {
+        const res = await fetch("/api/games", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ type: "multiplayer" }),
+        });
+        if (!res.ok) throw new Error("Failed to create game");
+        return res.json();
     };
 
-    return (
-        <div className="flex flex-col items-center justify-center p-4">
-            {!inQueue ? (
-                <Button onClick={joinQueue} disabled={loading || !userId}>
-                    Join Multiplayer Queue {loading && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
-                </Button>
-            ) : (
-                <>
-                    <p className="text-lg">In queue... {queueLength} players waiting</p>
-                    <Button onClick={leaveQueue} variant="destructive" className="mt-2">
-                        Leave Queue
-                    </Button>
-                </>
-            )}
-        </div>
-    );
+    return null;
 }

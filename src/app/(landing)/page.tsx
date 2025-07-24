@@ -1,17 +1,18 @@
 "use client"
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from '@/components/ui/button';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Trophy } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import Division from '@/components/landing/division';
 import GameModes from "@/components/landing/game-modes";
 import { useRouter } from 'next/navigation';
-import { Trophy } from 'lucide-react';
 import { createClient } from "@/lib/supabase/client";
 import { useUserAuth } from '@/context/AuthContext';
+import Queue from "@/components/game/queue";
+import { toast } from "sonner";
 
 const features = [
   {
@@ -66,6 +67,9 @@ export default function LandingPage() {
   const [showModes, setShowModes] = useState(false);
   const [ongoingGameId, setOngoingGameId] = useState<string | null>(null);
   const [leaderboardEntries, setLeaderboardEntries] = useState<LeaderboardEntry[]>([]);
+  const [showQueue, setShowQueue] = useState(false);
+  const [queueing, setQueueing] = useState(false);
+  const queueingRef = useRef(false);
   const { user } = useUserAuth();
   const router = useRouter();
 
@@ -76,6 +80,7 @@ export default function LandingPage() {
     }
   };
 
+  // when user goes from signup -> landing page leaderboard doesnt load
   useEffect(() => {
     if (!user?.id) {
       setOngoingGameId(null);
@@ -95,7 +100,7 @@ export default function LandingPage() {
           if (!cancelled) setOngoingGameId(latest.id);
         }
       } catch (e) {
-        console.error(e);
+        toast.error('Failed to fetch ongoing game');
       }
     }
     fetchOngoingGame();
@@ -110,10 +115,9 @@ export default function LandingPage() {
         const { data, error } = await supabase.functions.invoke('leaderboard', {
           method: 'GET',
         });
-        if (error) {
-          console.error('Error fetching leaderboard:', error);
-          return;
-        }
+
+        if (error) return;
+
         if (data && Array.isArray(data)) {
           const mappedData = data.map((entry: any) => ({
             name: entry.username || 'Anonymous',
@@ -123,12 +127,30 @@ export default function LandingPage() {
           setLeaderboardEntries(mappedData);
         }
       } catch (error) {
-        console.error('Unexpected error fetching leaderboard:', error);
+        toast.error('Failed to fetch leaderboard');
       }
     }
 
     fetchLeaderboard();
   }, []);
+
+  const closeQueue = () => {
+    setShowQueue(false);
+    setQueueing(false);
+    queueingRef.current = false;
+  }
+
+  const openQueue = () => {
+    setShowQueue(prev => {
+      if (prev) return prev;
+      return true;
+    });
+  }
+
+  const handleMatchFound = (gameId: string) => {
+    closeQueue();
+    router.push(`/play/${gameId}`);
+  };
 
   return (
     <>
@@ -336,7 +358,9 @@ export default function LandingPage() {
         </div>
       </div>
 
-      {showModes && <GameModes onClose={() => setShowModes(false)} />}
+      {showQueue && (<Queue onMatchFound={handleMatchFound} onCancel={closeQueue} />)}
+
+      {showModes && <GameModes onClose={() => setShowModes(false)} onQueueRequest={openQueue} queueing={queueing} setQueueing={setQueueing} queueingRef={queueingRef} />}
     </>
   );
 }

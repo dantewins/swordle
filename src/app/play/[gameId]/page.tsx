@@ -1,5 +1,7 @@
 "use client"
 
+// wait for animation to play before showing dialog for win/loss 
+
 import { Delete, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'

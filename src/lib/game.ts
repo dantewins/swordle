@@ -14,16 +14,32 @@ export async function calculateStats(supabase: SupabaseClient, userId: string) {
         { count: losses },
         { data: recentGames }
     ] = await Promise.all([
-        supabase.from('games').select('id', { count: 'exact', head: true }).eq('user_id', userId).eq('status', 'won'),
-        supabase.from('games').select('id', { count: 'exact', head: true }).eq('user_id', userId).eq('status', 'lost'),
-        supabase.from('games').select('status').eq('user_id', userId).in('status', ['won', 'lost']).order('created_at', { ascending: false }).limit(100)
+        supabase.from('game_players').select('game_id', { head: true, count: 'exact' }).eq('user_id', userId).eq('outcome', 'won'),
+        supabase.from('game_players').select('game_id', { head: true, count: 'exact' }).eq('user_id', userId).eq('outcome', 'lost'),
+        supabase.from('game_players').select('outcome').eq('user_id', userId).neq('outcome', 'pending').order('joined_at', { ascending: false }).limit(100)
     ]);
 
     let currentStreak = 0;
     for (const game of recentGames || []) {
-        if (game.status === 'won') currentStreak++;
+        if (game.outcome === 'won') currentStreak++;
         else break;
     }
 
     return { wins: wins || 0, losses: losses || 0, currentStreak };
 }
+
+export const assertParticipant = async (
+    supabase: SupabaseClient,
+    gameId: number,
+    userId: string,
+) => {
+    const id = Number(gameId);
+    const { data, error } = await supabase
+        .from('game_players')
+        .select('game_id')
+        .eq('game_id', id)
+        .eq('user_id', userId)
+        .single();
+
+    if (error || !data) throw new Error('Game not found or unauthorized');
+};

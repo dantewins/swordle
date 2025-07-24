@@ -1,21 +1,21 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { createClient } from '@/lib/supabase/server';
-import { getAuthenticatedUser, calculateStats } from '@/lib/game';
+import { getAuthenticatedUser, calculateStats, assertParticipant } from '@/lib/game';
 
-export async function GET(req: Request, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
     try {
         const supabase = await createClient();
         const user = await getAuthenticatedUser(supabase);
-        const gameId = params.id;
+        const { id } = await params;
+        const gameId = Number(id);
+        await assertParticipant(supabase, gameId, user.id);
 
         const { data: game, error: gameError } = await supabase
             .from('games')
-            .select('id, type, status, secret_word_id, user_id')
+            .select('id, type, status, secret_word_id')
             .eq('id', gameId)
-            .eq('user_id', user.id)
             .single();
-
-        if (gameError || !game) throw new Error('Game not found or unauthorized');
+        if (gameError || !game) throw new Error('Game not found');
 
         const { data: word, error: wordError } = await supabase
             .from('words')
@@ -29,6 +29,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
             .from('guesses')
             .select('guess, result')
             .eq('game_id', gameId)
+            .eq('user_id', user.id)
             .order('created_at');
 
         if (historyError) throw new Error('Failed to fetch history');

@@ -6,11 +6,6 @@ import { Button } from "@/components/ui/button";
 import { useRouter } from 'next/navigation'
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
-import Queue from '@/components/game/queue';
-
-interface GameModesProps {
-  onClose: () => void;
-}
 
 const palette = {
   0: "bg-gradient-to-br from-yellow-400 to-yellow-600",
@@ -60,19 +55,17 @@ const modes: Mode[] = [
   },
 ];
 
-export default function GameModes({ onClose }: GameModesProps) {
+export default function GameModes({ onClose, onQueueRequest, queueing, setQueueing, queueingRef }: { onClose: () => void, onQueueRequest: () => void, queueing: boolean, setQueueing: (value: boolean) => void, queueingRef: React.MutableRefObject<boolean> }) {
   const [backdropVisible, setBackdropVisible] = useState(false);
   const [cardsVisible, setCardsVisible] = useState<boolean[]>(new Array(modes.length).fill(false));
   const [isExiting, setIsExiting] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [selected, setSelected] = useState<string>("");
-  const [showQueue, setShowQueue] = useState(false); // New state for showing Queue
+  const [isLgUp, setIsLgUp] = useState(false);
   const router = useRouter();
 
   const generateGame = async (type: string) => {
     try {
       setLoading(true);
-      setSelected(type);
 
       const res = await fetch("/api/games", {
         method: "POST",
@@ -100,13 +93,7 @@ export default function GameModes({ onClose }: GameModesProps) {
       }
     } finally {
       setLoading(false)
-      setSelected("");
     }
-  };
-
-  const handleMatchFound = (gameId: string) => {
-    toast.success("Matched! Game starting...");
-    router.push(`/play/${gameId}`);
   };
 
   useEffect(() => {
@@ -141,6 +128,14 @@ export default function GameModes({ onClose }: GameModesProps) {
     };
   }, []);
 
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 64rem)");
+    const update = () => setIsLgUp(mq.matches);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
+
   const handleClose = () => {
     setIsExiting(true);
     modes.map((_, index) => {
@@ -158,8 +153,17 @@ export default function GameModes({ onClose }: GameModesProps) {
     }, modes.length * 200);
   };
 
+  const handleMultiplayer = () => {
+    if (queueing || queueingRef.current) return;
+    queueingRef.current = true;
+    setQueueing(true);
+    onQueueRequest();
+  };
+
   const backdropAnimation = isExiting ? "animate-ripples-exit" : backdropVisible ? "animate-ripples-enter" : "";
   const backdropStyle = (!backdropVisible && !isExiting) ? { clipPath: "circle(0 at 50% 50%)" } : {};
+
+  const isBusy = loading || queueing;
 
   return (
     <div
@@ -176,21 +180,23 @@ export default function GameModes({ onClose }: GameModesProps) {
       >
         {modes.map((mode, index) => (
           <Card
-            className={`border-none w-full max-w-md mx-auto ${palette[mode.id]} overflow-hidden rounded-none shadow-xl ${cardsVisible[index] ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'} hover:scale-103 hover:shadow-2xl sm:cursor-pointer transition-all duration-300 ease-in-out ${!mode.disabled && !loading ? 'lg:cursor-default cursor-pointer' : ''}`}
+            className={`border-none w-full max-w-md mx-auto ${palette[mode.id]} overflow-hidden rounded-none shadow-xl ${cardsVisible[index] ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'} hover:scale-103 hover:shadow-2xl sm:cursor-pointer transition-all duration-300 ease-in-out ${!mode.disabled && !isBusy ? 'lg:cursor-default cursor-pointer' : ''}`}
             key={index}
             onClick={() => {
-              if (!mode.disabled && !loading) {
-                if (mode.type === 'multiplayer') {
-                  setShowQueue(true);
-                } else {
-                  generateGame(mode.type);
-                }
-              }
+              if (isLgUp) return;
+              if (mode.disabled || loading || queueingRef.current) return;
+
+              mode.type === 'multiplayer' ? handleMultiplayer() : generateGame(mode.type);
             }}
           >
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-2xl font-bold text-white">
-                {mode.title} {loading && selected === mode.type && <Loader2 className="inline-block h-4 w-4 animate-spin ml-2" />}
+                {mode.title} <span className="inline-flex lg:hidden">
+                  {((loading && mode.type === 'solo') ||
+                    (queueing && mode.type === 'multiplayer')) && (
+                      <Loader2 className="ml-2 h-5 w-5 animate-spin" />
+                    )}
+                </span>
               </CardTitle>
               <span className="text-4xl">{mode.icon}</span>
             </CardHeader>
@@ -203,34 +209,21 @@ export default function GameModes({ onClose }: GameModesProps) {
                 className="bg-white/20 backdrop-blur-sm flexed items-center justify-center transition ease-in-out hover:bg-white/10 hover:cursor-pointer"
                 onClick={(e) => {
                   e.stopPropagation();
-                  if (mode.type === 'multiplayer') {
-                    setShowQueue(true);
+
+                  if (mode.type === "multiplayer") {
+                    handleMultiplayer();
                   } else {
                     generateGame(mode.type);
                   }
                 }}
-                disabled={mode.disabled || (loading && selected === mode.type)}
+                disabled={mode.disabled || loading || queueing || queueingRef.current}
               >
-                {mode.disabled ? "Coming soon..." : "Play Now"} {loading && selected === mode.type ? <Loader2 className="h-4 w-4 animate-spin" /> : ""}
+                {mode.disabled ? "Coming soon..." : "Play Now"} {((loading && mode.type === 'solo') || (queueing && mode.type === 'multiplayer')) ? <Loader2 className="h-4 w-4 animate-spin" /> : ""}
               </Button>
             </CardFooter>
           </Card>
         ))}
       </div>
-
-      
-        <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="bg-white p-6 rounded-lg shadow-xl">
-            <Queue onMatchFound={(gameId) => {
-              setShowQueue(false);
-              router.push(`/play/${gameId}`);
-            }} />
-            <Button onClick={() => setShowQueue(false)} variant="outline" className="mt-4">
-              Cancel
-            </Button>
-          </div>
-        </div>
-      )
     </div>
   );
 }

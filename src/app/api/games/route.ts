@@ -8,12 +8,13 @@ export async function GET(req: Request) {
         const user = await getAuthenticatedUser(supabase);
         const { searchParams } = new URL(req.url);
 
-        let query = supabase.from('games').select('*').eq('user_id', user.id).order('created_at', { ascending: false });
+        let query = supabase.from('game_players').select('games:games(*)').eq('user_id', user.id).order('games(created_at)', { ascending: false });
 
         const filters = ['id', 'type', 'status', 'created_at'];
-        for (const filter of filters) {
-            const value = searchParams.get(filter);
-            if (value) query = query.eq(filter, value);
+        for (const f of filters) {
+            const v = searchParams.get(f);
+            if (!v) continue;
+            query = query.eq(`games.${f}`, v);
         }
 
         const { data: games, error } = await query;
@@ -27,61 +28,54 @@ export async function GET(req: Request) {
 export async function POST(req: NextRequest) {
     try {
         const { type } = await req.json();
-
-        // Check if game type is valid
-        if (!['solo', 'multiplayer', 'daily_challenge'].includes(type)) {
-            throw new Error('Invalid game type');
-        }
+        const validTypes = ["solo", "multiplayer", "daily_challenge"];
+        if (!validTypes.includes(type)) throw new Error("Invalid game type");
 
         const supabase = await createClient();
         const user = await getAuthenticatedUser(supabase);
 
-        // Check for existing game
-        let checkQuery = supabase
-            .from('games')
-            .select('id')
-            .eq('user_id', user.id)
-            .eq('type', type)
-            .eq('status', 'started')
-            .limit(1);
+        const { data: dup, error: dupErr } = await supabase
+            .from("game_players")
+            .select("game_id, games!inner(id,type,status)")
+            .eq("user_id", user.id)
+            .eq("games.type", type)
+            .eq("games.status", "started")
+            .limit(1)
+            .maybeSingle();
 
-        if (type === 'daily_challenge') {
-            const today = new Date().toISOString().slice(0, 10) + 'T00:00:00Z';
-            checkQuery = supabase
-                .from('games')
-                .select('id')
-                .eq('user_id', user.id)
-                .eq('type', type)
-                .gte('created_at', today)
-                .limit(1);
-        }
+        if (dupErr) throw new Error("Failed to check existing games");
+        if (dup) throw new Error("You already have an active game");
 
-        const { data: existingGames, error: checkError } = await checkQuery;
+        const { data: secret_word_id, error: wordErr } = await supabase.rpc(
+            "get_random_word"
+        );
+        if (wordErr || !secret_word_id) throw new Error("Failed to select word");
 
-        if (checkError) throw new Error('Failed to check existing games');
-        if (existingGames?.length > 0) {
-            throw new Error(type === 'daily_challenge' ? 'You already played today\'s challenge' : 'You already have an active game');
-        }
-
-        // Select a random word
-        const { data: secret_word_id, error: rpcError } = await supabase.rpc('get_random_word');
-        if (rpcError || !secret_word_id) throw new Error('Failed to select random word');
-
-        // Create game
-        const { data: game, error: insertError } = await supabase
-            .from('games')
+        const { data: game, error: gameErr } = await supabase
+            .from("games")
             .insert({
                 user_id: user.id,
                 type,
                 secret_word_id,
-                status: 'started'
+                status: "started",
             })
-            .select('id')
+            .select("id")
             .single();
+        if (gameErr || !game) throw new Error("Failed to create game");
 
-        if (insertError || !game) throw new Error('Failed to create game');
+        const { error: regErr } = await supabase
+            .from("game_players")
+            .upsert(
+                { game_id: game.id, user_id: user.id },
+                { onConflict: "game_id,user_id" }
+            );
+        if (regErr) throw new Error("Failed to register player");
+
         return NextResponse.json(game);
-    } catch (error: any) {
-        return NextResponse.json({ error: error.message || 'An unexpected error occurred' }, { status: 500 });
+    } catch (err: any) {
+        return NextResponse.json(
+            { error: err.message || "Unexpected error" },
+            { status: 500 }
+        );
     }
 }
