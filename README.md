@@ -6,26 +6,37 @@
   </a>
 </div>
 
-# Swordle?
+# Swordle.
 
-A Wordle-inspired SAT vocabulary game built with Next.js, TypeScript, and Supabase.
+A Wordle-inspired game for mastering SAT vocabulary, featuring solo practice, daily challenges, and real-time multiplayer.
 
 ## Overview
 
-Swordle challenges players to guess SAT-level vocabulary words in six tries, using Wordle-style feedback (green, yellow, gray). It offers solo practice, daily puzzles, and real-time multiplayer modes, with authentication, data persistence, and real-time updates powered by Supabase. The app is built with Next.js’s App Router, React, and TypeScript, and styled using Tailwind CSS and shadcn/ui components.
+Swordle challenges players to guess SAT-level vocabulary words within six attempts, providing Wordle-style feedback (green for correct, yellow for present, gray for absent) along with word definitions and parts of speech. Built with Next.js, TypeScript, and Tailwind CSS on the frontend, and powered by Supabase for authentication, database, and realtime updates, Swordle offers engaging solo practice, future daily challenges, and competitive real-time multiplayer modes.
 
 ## Architecture
 
+```mermaid
+flowchart LR
+  Browser["Browser (React UI)"] --> NextApp["Next.js App (app directory)"]
+  NextApp --> API["API Routes (/api/*)"]
+  API --> SupabaseDB["Supabase (Postgres & Auth)"]
+  Browser --> SupabaseClient["Supabase Client (Browser)"]
+  SupabaseClient --> SupabaseDB
+
+```
+
 ## Features
 
-- Wordle-style guessing with definitions and parts of speech for SAT vocabulary
-- Solo practice, daily challenges, and real-time multiplayer modes
+- Wordle-style guessing with SAT-level vocabulary, definitions, and parts of speech
+- Solo practice mode for random word challenges
+- Real-time multiplayer mode with matchmaking queue and presence detection
+- Daily challenge mode (planned) with a shared puzzle each day
 - User authentication and session management via Supabase Auth
-- Persistent game state and stats tracking (wins, losses, streaks)
-- Leaderboard showcasing top performers using a Supabase Edge Function
-- Responsive design with Tailwind CSS, shadcn/ui, Radix UI, and theme support
-- Real-time updates and presence via Supabase Realtime
-- Modular codebase leveraging the Next.js App Router and TypeScript
+- Persistent game state, stats tracking (wins, losses, streaks), and leaderboards
+- Responsive UI built with Tailwind CSS, shadcn/ui, and Radix UI components
+- Realtime updates powered by Supabase Realtime and presence channels
+- Celebratory confetti effects on wins and rich notifications with Sonner
 
 ## Installation
 
@@ -33,6 +44,7 @@ Swordle challenges players to guess SAT-level vocabulary words in six tries, usi
 git clone https://github.com/dantewins/swordle.git
 cd swordle
 npm install
+
 ```
 
 ## Configuration
@@ -42,29 +54,36 @@ Create a `.env.local` file in the project root with your Supabase credentials:
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-public-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+
 ```
 
 ## Usage
 
 - Run the development server: `npm run dev`
 - Open http://localhost:3000 in your browser
-- Sign up or log in via `/auth/signup` and `/auth/login`
-- Click “Play” to choose a mode and start guessing
-- Visit `/play/<gameId>` to continue an ongoing game
+- Sign up or log in via `/auth/login` and `/auth/signup`
+- Click “Play” to select a game mode and start guessing
+- For multiplayer: enter the matchmaking queue and wait for an opponent
+- Visit `/play/<gameId>` to resume or spectate games
 
 ## Contributing
 
-- Fork the repository
-- Create a feature branch: `git checkout -b feature/your-feature`
-- Commit your changes with a descriptive message
-- Push to your branch and open a Pull Request
+Contributions are welcome! To contribute:
+
+- Fork the repository and create your branch: `git checkout -b feature/YourFeature`
+- Install dependencies and run the development server locally
+- Ensure your changes include relevant tests and documentation
+- Commit your changes with descriptive messages
+- Push to your branch and open a pull request
 
 ## Acknowledgements
 
 - Next.js – React framework for production
 - Supabase – Backend-as-a-Service for auth, database, and realtime
 - Tailwind CSS – Utility-first styling
-- shadcn/ui & Radix UI – Accessible component libraries
+- shadcn/ui & Radix UI – Accessible React component libraries
 - Lucide React – Icon library
 - Sonner – Notification system
 - canvas-confetti – Celebration effects
+- Framer Motion – Animation library
