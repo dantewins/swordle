@@ -1,38 +1,31 @@
-# Swordle
+<div align="center">
+  <a href="https://shipwrecked.hackclub.com/?t=ghrm" target="_blank">
+    <img src="https://hc-cdn.hel1.your-objectstorage.com/s/v3/739361f1d440b17fc9e2f74e49fc185d86cbec14_badge.png" 
+         alt="This project is part of Shipwrecked, the world's first hackathon on an island!" 
+         style="width: 35%;">
+  </a>
+</div>
 
-Wordle-inspired SAT vocabulary practice built with Next.js and Supabase.
+# Swordle?
+
+A Wordle-inspired SAT vocabulary game built with Next.js, TypeScript, and Supabase.
 
 ## Overview
 
-Swordle is a web-based, Wordle-inspired game that challenges players with SAT-level vocabulary. It offers solo games, daily challenges, and multiplayer modes, all backed by Supabase for authentication and data persistence. The app is built with Next.js (v15.4.1), TypeScript, and styled using Tailwind CSS and shadcn/ui components, providing a responsive and engaging user experience.  
+Swordle challenges players to guess SAT-level vocabulary words in six tries, using Wordle-style feedback (green, yellow, gray). It offers solo practice, daily puzzles, and real-time multiplayer modes, with authentication, data persistence, and real-time updates powered by Supabase. The app is built with Next.js’s App Router, React, and TypeScript, and styled using Tailwind CSS and shadcn/ui components.
 
 ## Architecture
 
-```mermaid
-flowchart TB
-  subgraph Frontend
-    FE["Next.js App (React + TypeScript)"]
-    FE --> AC["AuthContext (Context Provider)"]
-    FE --> LG["Landing, Auth, and Game Pages"]
-    LG --> UI["UI Components (shadcn/ui, Radix UI, Tailwind)"]
-  end
-  FE -.->|Supabase JS SDK| SBClient["Supabase Client"]
-  SBClient -->|Auth & Database| SupaDB[(Supabase Database)]
-  SBClient -->|Edge Function| LB["Leaderboard Function"]
-```
-
-The frontend handles routing and UI, while Supabase provides backend services including authentication, database operations, and edge functions.
-
 ## Features
 
-- Wordle-style gameplay with 6 guesses and SAT-level words defined by part of speech and definition 
-- User authentication (sign up, login, logout) via Supabase Auth 
+- Wordle-style guessing with definitions and parts of speech for SAT vocabulary
+- Solo practice, daily challenges, and real-time multiplayer modes
+- User authentication and session management via Supabase Auth
 - Persistent game state and stats tracking (wins, losses, streaks)
-- Daily challenges and solo/multiplayer game modes
-- Leaderboard powered by a Supabase Edge Function 
-- Responsive design with Tailwind CSS, shadcn/ui, and Radix UI
-- Light/dark theme support via next-themes
-- Clean, modular codebase using the Next.js App Router
+- Leaderboard showcasing top performers using a Supabase Edge Function
+- Responsive design with Tailwind CSS, shadcn/ui, Radix UI, and theme support
+- Real-time updates and presence via Supabase Realtime
+- Modular codebase leveraging the Next.js App Router and TypeScript
 
 ## Installation
 
@@ -44,7 +37,7 @@ npm install
 
 ## Configuration
 
-Create a .env.local file in the project root and add the following variables to connect to your Supabase project:
+Create a `.env.local` file in the project root with your Supabase credentials:
 
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
@@ -53,26 +46,25 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your-public-anon-key
 
 ## Usage
 
-- Start the development server: npm run dev
+- Run the development server: `npm run dev`
 - Open http://localhost:3000 in your browser
-- Navigate to /auth/signup to create a new account
-- Go to /auth/login to sign in
-- Click "Play" on the landing page to choose a game mode 
-- Play your game at /play/[gameId] using on-screen or keyboard input
+- Sign up or log in via `/auth/signup` and `/auth/login`
+- Click “Play” to choose a mode and start guessing
+- Visit `/play/<gameId>` to continue an ongoing game
 
 ## Contributing
 
 - Fork the repository
-- Create a branch for your feature or fix: git checkout -b feature/your-feature
-- Commit your changes: git commit -m "feat: description"
-- Push to your branch: git push origin feature/your-feature
-- Open a Pull Request for review
+- Create a feature branch: `git checkout -b feature/your-feature`
+- Commit your changes with a descriptive message
+- Push to your branch and open a Pull Request
 
 ## Acknowledgements
 
-- Next.js – React framework for production 
-- Supabase – Backend-as-a-Service for Auth and database
-- Tailwind CSS – Utility-first CSS framework 
+- Next.js – React framework for production
+- Supabase – Backend-as-a-Service for auth, database, and realtime
+- Tailwind CSS – Utility-first styling
 - shadcn/ui & Radix UI – Accessible component libraries
 - Lucide React – Icon library
 - Sonner – Notification system
+- canvas-confetti – Celebration effects
