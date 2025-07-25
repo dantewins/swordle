@@ -15,7 +15,7 @@ import { Loader2 } from "lucide-react";
 export function SignupForm() {
   const signupSchema = z.object({
     email: z.email("Invalid email address"),
-    display_name: z.string().min(3, "Display name must be at least 3 characters"),
+    display_name: z.string().min(3, "Display name must be at least 3 characters").max(12, "Display name must be at most 12 characters"),
     password: z.string().min(8, "Password must be at least 8 characters"),
   });
 

@@ -9,18 +9,20 @@ interface Presence { user_id: string }
 
 export default function Queue({ onMatchFound, onCancel }: { onMatchFound: (gameId: string) => void, onCancel: () => void }) {
     const [userId, setUserId] = useState<string | null>(null);
+    const [redirected, setRedirected] = useState(false);
+    const [activeCheckDone, setActiveCheckDone] = useState(false);
     const supabase = useRef(createClient()).current;
     const toastId = useRef<string | number | null>(null);
     const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
     const hasMatchedRef = useRef(false);
+    const intervalRef = useRef<number | null>(null);
 
     useEffect(() => {
         let cancelled = false;
         (async () => {
             try {
                 const user = await getAuthenticatedUser(supabase);
-                if (cancelled) return;
-                setUserId(user.id);
+                if (!cancelled) setUserId(user.id);
             } catch {
                 toast.error("You need to be logged in to play.");
             }
@@ -30,6 +32,26 @@ export default function Queue({ onMatchFound, onCancel }: { onMatchFound: (gameI
 
     useEffect(() => {
         if (!userId) return;
+        (async () => {
+            try {
+                const res = await fetch("/api/games?type=multiplayer&status=started");
+                if (res.ok) {
+                    const rows = await res.json();
+                    if (Array.isArray(rows) && rows.length > 0 && rows[0]?.games?.id) {
+                        setRedirected(true);
+                        onMatchFound(rows[0].games.id);
+                        return;
+                    }
+                }
+            } finally {
+                setActiveCheckDone(true);
+            }
+        })();
+    }, [userId, onMatchFound]);
+
+    useEffect(() => {
+        if (!userId || redirected || !activeCheckDone) return;
+
         const channel = supabase.channel("matchmaking");
         channelRef.current = channel;
 
@@ -41,15 +63,22 @@ export default function Queue({ onMatchFound, onCancel }: { onMatchFound: (gameI
                 if (hostId === userId) {
                     hasMatchedRef.current = true;
                     createGame()
-                        .then(game => {
+                        .then(async game => {
+                            const joinRes = await fetch(`/api/games/${game.id}/join`, { method: "POST" });
+                            if (!joinRes.ok) {
+                                const { error } = await joinRes.json().catch(() => ({ error: "Join failed" }));
+                                toast.error(error || "Failed to join game");
+                                hasMatchedRef.current = false;
+                                return;
+                            }
+
                             channel.send({
                                 type: "broadcast",
                                 event: "match",
                                 payload: { gameId: game.id, opponent: sortedIds.find(id => id !== userId) },
                             });
-                            finish(game.id);
                         })
-                        .catch(() => { hasMatchedRef.current = false });
+                        .catch(() => { hasMatchedRef.current = false; });
                 }
             }
         });
@@ -64,8 +93,13 @@ export default function Queue({ onMatchFound, onCancel }: { onMatchFound: (gameI
                     hasMatchedRef.current = false;
                     return;
                 }
+                channel.send({ type: "broadcast", event: "joined", payload: { gameId: payload.gameId } });
                 finish(payload.gameId);
             }
+        });
+
+        channel.on("broadcast", { event: "joined" }, ({ payload }) => {
+            if (hasMatchedRef.current && payload.gameId) finish(payload.gameId);
         });
 
         channel.subscribe(async status => {
@@ -74,10 +108,12 @@ export default function Queue({ onMatchFound, onCancel }: { onMatchFound: (gameI
             }
         });
 
-        return () => { channel.unsubscribe() };
-    }, [userId]);
+        return () => { channel.unsubscribe(); };
+    }, [userId, redirected, activeCheckDone]);
 
     useEffect(() => {
+        if (!activeCheckDone || redirected) return;
+
         const started = Date.now();
         const format = (ms: number) => {
             const total = Math.floor(ms / 1000);
@@ -93,8 +129,8 @@ export default function Queue({ onMatchFound, onCancel }: { onMatchFound: (gameI
             action: { label: "Cancel", onClick: cancel },
         });
 
-        const interval = setInterval(() => {
-            if (toastId.current) {
+        intervalRef.current = window.setInterval(() => {
+            if (!hasMatchedRef.current && toastId.current) {
                 toast.message("Searching for an opponent", {
                     id: toastId.current,
                     description: format(Date.now() - started),
@@ -106,15 +142,24 @@ export default function Queue({ onMatchFound, onCancel }: { onMatchFound: (gameI
         }, 1000);
 
         return () => {
-            clearInterval(interval);
+            if (intervalRef.current) clearInterval(intervalRef.current);
             if (toastId.current) {
                 toast.dismiss(toastId.current);
                 toastId.current = null;
             }
         };
-    }, []);
+    }, [activeCheckDone, redirected]);
+
+    useEffect(() => {
+        if (redirected && toastId.current) {
+            if (intervalRef.current) clearInterval(intervalRef.current);
+            toast.dismiss(toastId.current);
+            toastId.current = null;
+        }
+    }, [redirected]);
 
     const cancel = () => {
+        if (intervalRef.current) clearInterval(intervalRef.current);
         channelRef.current?.unsubscribe();
         if (toastId.current) toast.dismiss(toastId.current);
         toastId.current = null;
@@ -122,12 +167,15 @@ export default function Queue({ onMatchFound, onCancel }: { onMatchFound: (gameI
     };
 
     const finish = (gameId: string) => {
-        if (toastId.current)
+        hasMatchedRef.current = true;
+        if (intervalRef.current) clearInterval(intervalRef.current);
+        if (toastId.current) {
             toast.success("Match found", {
                 description: "Redirecting to your game",
                 id: toastId.current,
                 duration: 1000,
             });
+        }
         setTimeout(() => onMatchFound(gameId), 1000);
     };
 

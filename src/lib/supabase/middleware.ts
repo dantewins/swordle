@@ -37,6 +37,10 @@ export async function updateSession(request: NextRequest) {
         data: { user },
     } = await supabase.auth.getUser()
 
+    if (request.nextUrl.pathname.startsWith('/api/leaderboard')) {
+        return NextResponse.next();
+    }
+
     // Protected routes
     const protectedPaths = ['/play'];
 

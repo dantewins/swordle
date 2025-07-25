@@ -111,26 +111,22 @@ export default function LandingPage() {
   useEffect(() => {
     async function fetchLeaderboard() {
       try {
-        const supabase = createClient();
-        const { data, error } = await supabase.functions.invoke('leaderboard', {
-          method: 'GET',
-        });
-
-        if (error) return;
-
-        if (data && Array.isArray(data)) {
-          const mappedData = data.map((entry: any) => ({
-            name: entry.username || 'Anonymous',
+        const res = await fetch("/api/leaderboard");
+        if (!res.ok) throw new Error();
+        const data = await res.json();
+        setLeaderboardEntries(
+          data.map((entry: any) => ({
+            name: entry.name || "Anonymous",
             wins: entry.wins,
-            avatar: `https://api.dicebear.com/9.x/bottts-neutral/svg?seed=${encodeURIComponent(entry.user_id)}`,
-          }));
-          setLeaderboardEntries(mappedData);
-        }
-      } catch (error) {
-        toast.error('Failed to fetch leaderboard');
+            avatar: `https://api.dicebear.com/9.x/bottts-neutral/svg?seed=${encodeURIComponent(
+              entry.user_id
+            )}`,
+          }))
+        );
+      } catch {
+        toast.error("Failed to fetch leaderboard");
       }
     }
-
     fetchLeaderboard();
   }, []);
 
@@ -185,15 +181,6 @@ export default function LandingPage() {
                 >
                   Leaderboard
                 </Badge>
-                {ongoingGameId && (
-                  <Badge
-                    variant="outline"
-                    className="border-black rounded-full text-sm px-2 py-1 hover:text-white hover:bg-black cursor-pointer"
-                    onClick={() => router.push(`/play/${ongoingGameId}`)}
-                  >
-                    Rejoin
-                  </Badge>
-                )}
               </div>
             </div>
           </div>
