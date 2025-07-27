@@ -51,20 +51,27 @@ export default function GamePage() {
         useState<{ wins: number; losses: number; currentStreak: number } | null>(
             null
         );
-    const [buttonLoading, setButtonLoading] = useState(false);
     const [dialogOpen, setDialogOpen] = useState(false);
     const [bothJoined, setBothJoined] = useState(false);
     const [tooltipPos, setTooltipPos] = useState<"top" | "bottom">("top");
 
     const triggerRef = useRef<HTMLDivElement | null>(null);
     const popoverRef = useRef<HTMLDivElement | null>(null);
-    const pendingGameOverRef = useRef<{ isWin: boolean } | null>(null);
     const confettiFiredRef = useRef(false);
+    const dialogFiredRef = useRef(false);
 
     function fireConfettiOnce() {
         if (confettiFiredRef.current) return;
         confettiFiredRef.current = true;
-        confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+        confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 }, zIndex: 9999 });
+    }
+
+    function fireDialogOnce(won: Boolean) {
+        console.log(dialogFiredRef.current, "dialogFiredRef");
+        if (dialogFiredRef.current) return;
+        dialogFiredRef.current = true;
+        setDialogOpen(true);
+        if (won) fireConfettiOnce();
     }
 
     useEffect(() => {
@@ -134,10 +141,10 @@ export default function GamePage() {
 
             if (data.status !== "started") {
                 const hasGuesses = data.history && data.history.length > 0;
-                const delay = hasGuesses ? (data.wordLength || 0) * 150 + 600 : 0;
+                const delay = hasGuesses ? (data.wordLength || 0) * 150 + 500 : 0;
                 setTimeout(() => {
-                    if (data.won) fireConfettiOnce();
-                    setDialogOpen(true);
+                    console.log("loadGame: firing dialog");
+                    fireDialogOnce(data.won);
                 }, delay);
             }
         } catch (e: any) {
@@ -148,6 +155,7 @@ export default function GamePage() {
     useEffect(() => {
         loadGame();
         confettiFiredRef.current = false;
+        dialogFiredRef.current = false;
     }, [loadGame]);
 
     useEffect(() => {
@@ -181,7 +189,6 @@ export default function GamePage() {
                     const g = payload.new as { user_id: string; guess: string; result: Result[] };
                     const guessObj = { guess: g.guess.toUpperCase(), result: g.result };
                     if (g.user_id === userId) {
-                        // Ignore own realtime guess; we add it after fetch resolves.
                         return;
                     }
                     setOpponentHistory((prev) => [...prev, guessObj]);
@@ -216,7 +223,6 @@ export default function GamePage() {
                 stats: responseStats,
             } = await res.json();
 
-            // Update board (solo and multiplayer) only AFTER loading completes.
             setHistory((prev) => {
                 const next = [...prev, { guess: guessToSend, result }];
                 rebuildKeyStates(next);
@@ -233,10 +239,10 @@ export default function GamePage() {
             if (isWin || isGameOver) {
                 setGameOver(true);
                 setWon(isWin);
-                const delay = wordLength * 150 + 600;
+                const delay = wordLength * 150 + 500;
                 setTimeout(() => {
-                    if (isWin) fireConfettiOnce();
-                    setDialogOpen(true);
+                    console.log("handleGuess: firing dialog");
+                    fireDialogOnce(isWin);
                 }, delay);
             }
         } catch (e: any) {
@@ -498,10 +504,8 @@ export default function GamePage() {
                                 <Button
                                     onClick={() => router.push("/")}
                                     className="w-full text-white font-semibold py-2 rounded-lg transition-colors"
-                                    disabled={buttonLoading}
                                 >
                                     Go home{" "}
-                                    {buttonLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : ""}
                                 </Button>
                             </DialogHeader>
                         </div>
